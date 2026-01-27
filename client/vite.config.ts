@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: '가계부',
-        short_name: '가계부',
-        description: '간편한 가계부 앱',
+        name: "동희부부's 앱",
+        short_name: "동희부부's 앱",
+        description: "동희부부's 앱",
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
