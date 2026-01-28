@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import scriptureRoutes from './routes/scripture.js';
+import todoRoutes from './routes/todo.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 // 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/scripture', scriptureRoutes);
+app.use('/api/todo', todoRoutes);
 
 app.get('/health', (_, res) => {
   res.json({ status: 'ok' });

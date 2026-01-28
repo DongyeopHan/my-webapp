@@ -1,0 +1,401 @@
+.todo-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background-color: #ffffff;
+}
+
+.todo-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 24px;
+}
+
+.todo-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #5d4e37;
+  margin: 0;
+}
+
+.todo-stats {
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.completed-count {
+  color: #ffb088;
+}
+
+.stats-separator {
+  color: #999;
+  margin: 0 0.25rem;
+}
+
+.total-count {
+  color: #5d4e37;
+}
+
+.add-todo-button {
+  padding: 0.5rem 1rem;
+  background-color: #ffb088;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-todo-button:hover {
+  background-color: #ff9a6c;
+  transform: translateY(-2px);
+}
+
+.error-message {
+  padding: 0.75rem;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.todo-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-message {
+  text-align: center;
+  color: #999;
+  font-size: 1rem;
+  margin-top: 2rem;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: #fff9f5;
+  border: 2px solid #ffe0d0;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+}
+
+.todo-item:hover {
+  background-color: #ffe0d0;
+  transform: translateX(4px);
+}
+
+.todo-item.completed {
+  opacity: 0.6;
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.todo-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #ffb088;
+}
+
+.todo-item-title {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.todo-item.completed .todo-item-title {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.todo-time {
+  font-size: 0.9rem;
+  color: #ffb088;
+  font-weight: 500;
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 2px solid #ffe0d0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #5d4e37;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #5d4e37;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 0.75rem;
+  border: 2px solid #ffe0d0;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #ffb088;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.period-select {
+  padding: 0.75rem;
+  border: 2px solid #ffe0d0;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 80px;
+}
+
+.period-select:focus {
+  outline: none;
+  border-color: #ffb088;
+}
+
+.hour-input {
+  width: 80px;
+  padding: 0.75rem;
+  border: 2px solid #ffe0d0;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.hour-input:focus {
+  outline: none;
+  border-color: #ffb088;
+}
+
+.hour-label,
+.minute-label {
+  font-size: 1rem;
+  color: #5d4e37;
+  font-weight: 500;
+}
+
+.minute-input {
+  width: 80px;
+  padding: 0.75rem;
+  border: 2px solid #ffe0d0;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.minute-input:focus {
+  outline: none;
+  border-color: #ffb088;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item label {
+  font-weight: 600;
+  color: #5d4e37;
+  font-size: 0.9rem;
+}
+
+.detail-item p {
+  margin: 0;
+  padding: 0.75rem;
+  background-color: #fff9f5;
+  border-radius: 0.5rem;
+  color: #333;
+}
+
+.detail-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 2px solid #ffe0d0;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.todo-page .submit-button,
+.todo-page .delete-button,
+.todo-page .edit-button,
+.todo-page .cancel-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.todo-page .submit-button {
+  background-color: #ffb088;
+  color: white;
+}
+
+.todo-page .submit-button:hover {
+  background-color: #ff9a6c;
+  transform: translateY(-2px);
+}
+
+.todo-page .todo-page .edit-button {
+  background-color: #ffd4c4;
+  color: #5d4e37;
+}
+
+.todo-page .edit-button:hover {
+  background-color: #ffb088;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.todo-page .cancel-button {
+  background-color: #e8e8e8;
+  color: #5d4e37;
+}
+
+.todo-page .cancel-button:hover {
+  background-color: #d8d8d8;
+  transform: translateY(-2px);
+}
+
+.todo-page .delete-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.todo-page .delete-button:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+/* 반응형 */
+@media (max-width: 767px) {
+  .modal-content {
+    width: 95%;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1rem;
+  }
+}

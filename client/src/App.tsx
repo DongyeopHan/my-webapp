@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
 import { ScripturePage } from './pages/ScripturePage';
+import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import type { User } from './types/user';
 
@@ -13,10 +14,10 @@ type MenuItem = {
 type PageType = 'home' | 'todo' | 'scripture' | 'ledger' | 'inbody';
 
 const MENU_ITEMS: MenuItem[] = [
-  { id: 'todo', label: 'TODO-LIST' },
-  { id: 'scripture', label: '성경통독' },
-  { id: 'ledger', label: '가계부' },
-  { id: 'inbody', label: '인바디 기록' },
+  { id: 'todo', label: '✅TODO-LIST' },
+  { id: 'scripture', label: '📖성경통독' },
+  { id: 'ledger', label: '📒가계부' },
+  { id: 'inbody', label: '📊인바디 기록' },
 ];
 
 const USER_STORAGE_KEY = 'logged_in_user';
@@ -58,6 +59,7 @@ function App() {
       case 'scripture':
         return <ScripturePage user={user!} />;
       case 'todo':
+        return <TodoListPage user={user!} />;
       case 'inbody':
         return <p className="app-main-placeholder">준비 중입니다...</p>;
       default:

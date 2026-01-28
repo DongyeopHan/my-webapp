@@ -80,7 +80,7 @@
   cursor: pointer;
 }
 
-.submit-button {
+.ledger-page .submit-button {
   margin-top: 8px;
   margin-bottom: 16px;
   padding: 16px;
@@ -96,16 +96,16 @@
     transform 0.2s;
 }
 
-.submit-button:hover:not(:disabled) {
+.ledger-page .ledger-page .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
   background: #ff9a6c;
 }
 
-.submit-button:active:not(:disabled) {
+.ledger-page .submit-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.submit-button:disabled {
+.ledger-page .submit-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -137,7 +137,7 @@
     font-size: 15px;
   }
 
-  .submit-button {
+  .ledger-page .submit-button {
     padding: 14px;
     font-size: 15px;
   }
