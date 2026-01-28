@@ -20,7 +20,7 @@ router.get('/:userId', async (req: Request, res: Response) => {
     await Todo.updateMany(
       {
         userId: new mongoose.Types.ObjectId(userId),
-        lastResetDate: { $ne: today },
+        lastResetDate: { $ne: today } as any,
         completed: true,
       },
       {
@@ -35,7 +35,7 @@ router.get('/:userId', async (req: Request, res: Response) => {
     await Todo.updateMany(
       {
         userId: new mongoose.Types.ObjectId(userId),
-        lastResetDate: { $ne: today },
+        lastResetDate: { $ne: today } as any,
       },
       {
         $set: {
