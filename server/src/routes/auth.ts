@@ -57,7 +57,11 @@ router.post('/signup', async (req: Request, res: Response) => {
     // 이미 존재하는 사용자 확인
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return res.status(409).json({ message: '이미 존재하는 아이디입니다' });
+      return res
+        .status(409)
+        .json({
+          message: '이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.',
+        });
     }
 
     // 새 사용자 생성

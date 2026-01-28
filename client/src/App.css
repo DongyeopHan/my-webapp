@@ -41,10 +41,10 @@ body {
 }
 
 .app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #ffe0d0;
+  color: #5d4e37;
   padding: 24px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
   display: flex;
   justify-content: space-between;
@@ -71,9 +71,9 @@ body {
 
 .logout-button {
   padding: 0.5rem 1rem;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: #ffb088;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: none;
   border-radius: 0.375rem;
   font-size: 0.85rem;
   cursor: pointer;
@@ -81,7 +81,7 @@ body {
 }
 
 .logout-button:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: #ff9a6c;
 }
 
 .app-main {
@@ -101,8 +101,8 @@ body {
 }
 
 .app-footer {
-  background-color: white;
-  border-top: 1px solid #e0e0e0;
+  background-color: #fff9f5;
+  border-top: 1px solid #ffe0d0;
   padding: 16px;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
@@ -123,15 +123,16 @@ body {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #ffe0d0;
+  color: #5d4e37;
   white-space: nowrap;
 }
 
 .menu-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #ffd4c4;
 }
 
 .menu-button:active {
@@ -140,8 +141,9 @@ body {
 }
 
 .menu-button.active {
-  background: linear-gradient(135deg, #4c5fd7 0%, #5a3a8a 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: #ffb088;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 176, 136, 0.3);
 }
 
 @media (max-width: 400px) {

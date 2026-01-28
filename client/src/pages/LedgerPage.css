@@ -17,7 +17,7 @@
   background: none;
   border: none;
   font-size: 16px;
-  color: #667eea;
+  color: #ffb088;
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -25,7 +25,7 @@
 }
 
 .back-button:hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: #ffe0d0;
 }
 
 .ledger-title {
@@ -87,7 +87,7 @@
   font-size: 16px;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffb088;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -98,6 +98,7 @@
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
+  background: #ff9a6c;
 }
 
 .submit-button:active:not(:disabled) {
