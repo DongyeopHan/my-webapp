@@ -193,7 +193,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
   };
 
   if (loading) {
-    return <div className="todo-loading">로딩 중...</div>;
+    return <div className="todo-loading">불러오는 중...</div>;
   }
 
   const completedCount = todos.filter((todo) => todo.completed).length;

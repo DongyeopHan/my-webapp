@@ -33,19 +33,19 @@
   gap: 1.5rem;
 }
 
-.form-group {
+.login-page .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-group label {
+.login-page .form-group label {
   font-weight: 600;
   color: #495057;
   font-size: 0.95rem;
 }
 
-.form-group input {
+.login-page .form-group input {
   padding: 0.75rem;
   border: 2px solid #dee2e6;
   border-radius: 0.5rem;
@@ -53,12 +53,12 @@
   transition: border-color 0.2s;
 }
 
-.form-group input:focus {
+.login-page .form-group input:focus {
   outline: none;
   border-color: #ffd4c4;
 }
 
-.form-group input:disabled {
+.login-page .form-group input:disabled {
   background-color: #f8f9fa;
   cursor: not-allowed;
 }

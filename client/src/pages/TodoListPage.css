@@ -4,7 +4,6 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
-  background-color: #ffffff;
 }
 
 .todo-loading {
@@ -24,16 +23,16 @@
 }
 
 .todo-title {
-  font-size: 1.5rem;
+  font-size: 16px;
   font-weight: 600;
-  color: #5d4e37;
+  color: #333;
   margin: 0;
 }
 
 .todo-stats {
   display: flex;
   align-items: center;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   margin-right: auto;
 }
@@ -57,7 +56,7 @@
   color: white;
   border: none;
   border-radius: 0.5rem;
-  font-size: 1rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -208,21 +207,21 @@
   gap: 1.5rem;
 }
 
-.form-group {
+.todo-page .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-group label {
+.todo-page .form-group label {
   font-weight: 600;
   color: #5d4e37;
   font-size: 0.95rem;
 }
 
-.form-group input,
-.form-group textarea {
-  padding: 0.75rem;
+.todo-page .form-group input,
+.todo-page .form-group textarea {
+  padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -230,25 +229,25 @@
   font-family: inherit;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.todo-page .form-group input:focus,
+.todo-page .form-group textarea:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.form-group textarea {
+.todo-page .todo-page .form-group textarea {
   resize: vertical;
   min-height: 100px;
 }
 
-.time-input-group {
+.todo-page .time-input-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.period-select {
-  padding: 0.75rem;
+.todo-page .period-select {
+  padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -258,14 +257,14 @@
   min-width: 80px;
 }
 
-.period-select:focus {
+.todo-page .period-select:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.hour-input {
+.todo-page .hour-input {
   width: 80px;
-  padding: 0.75rem;
+  padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -273,21 +272,21 @@
   transition: border-color 0.2s;
 }
 
-.hour-input:focus {
+.todo-page .hour-input:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.hour-label,
-.minute-label {
+.todo-page .hour-label,
+.todo-page .minute-label {
   font-size: 1rem;
   color: #5d4e37;
   font-weight: 500;
 }
 
-.minute-input {
+.todo-page .minute-input {
   width: 80px;
-  padding: 0.75rem;
+  padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -295,32 +294,32 @@
   transition: border-color 0.2s;
 }
 
-.minute-input:focus {
+.todo-page .todo-page .minute-input:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.detail-item {
+.todo-page .detail-item {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.detail-item label {
+.todo-page .detail-item label {
   font-weight: 600;
   color: #5d4e37;
   font-size: 0.9rem;
 }
 
-.detail-item p {
+.todo-page .detail-item p {
   margin: 0;
   padding: 0.75rem;
-  background-color: #fff9f5;
+  background-color: #fff4ee;
   border-radius: 0.5rem;
   color: #333;
 }
 
-.detail-content {
+.todo-page .detail-content {
   white-space: pre-wrap;
   line-height: 1.6;
 }
@@ -356,7 +355,7 @@
   transform: translateY(-2px);
 }
 
-.todo-page .todo-page .edit-button {
+.todo-page .edit-button {
   background-color: #ffd4c4;
   color: #5d4e37;
 }
