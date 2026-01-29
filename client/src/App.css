@@ -11,6 +11,8 @@ body {
   min-height: 100vh;
   min-height: 100dvh; /* 모바일 주소창 이슈 대응 */
   background: #ffffff;
+  overflow: hidden;
+  overscroll-behavior: none; /* pull-to-refresh 방지 */
 }
 
 #root {
@@ -23,6 +25,7 @@ body {
 
   display: flex;
   background-color: #ffffff;
+  overflow: hidden;
 }
 
 .app {
@@ -33,6 +36,8 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;
+  overflow: hidden;
+  position: relative;
 }
 
 .app-header,
@@ -88,10 +93,10 @@ body {
   flex: 1 1 auto;
   min-height: 0; /* 중요 포인트 */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;  
 }
 
 .app-main-placeholder {
