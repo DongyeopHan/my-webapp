@@ -12,8 +12,8 @@ export default defineConfig({
       manifest: {
         name: "동희부부's 앱",
         short_name: "동희부부's 앱",
-        description: "동희부부's 앱",
-        theme_color: '#ffffff',
+        description: '성경통독, TODO, 가계부 앱',
+        theme_color: '#ffb088',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
@@ -38,6 +38,20 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/my-webapp-2nai\.onrender\.com\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 24시간
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/script\.google\.com\/.*/i,
             handler: 'NetworkFirst',
