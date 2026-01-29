@@ -43,16 +43,42 @@ function Root() {
         onClose={() => {}}
         title="업데이트"
         showCloseButton={false}
-        maxWidth="300px"
+        maxWidth="320px"
       >
         <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-          <p style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+          <p style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '500' }}>
             새 버전이 업데이트 되었습니다.
           </p>
+          <div style={{ 
+            width: '100%', 
+            height: '8px', 
+            backgroundColor: '#e8e8e8', 
+            borderRadius: '4px',
+            overflow: 'hidden',
+            marginBottom: '0.75rem'
+          }}>
+            <div style={{
+              height: '100%',
+              backgroundColor: '#ffb088',
+              borderRadius: '4px',
+              animation: 'progress 2s ease-in-out',
+              width: '100%'
+            }}></div>
+          </div>
           <p style={{ margin: 0, fontSize: '0.875rem', color: '#666' }}>
-            잠시만 기다려주세요...
+            곧 새 버전으로 전환됩니다
           </p>
         </div>
+        <style>{`
+          @keyframes progress {
+            from {
+              width: 0%;
+            }
+            to {
+              width: 100%;
+            }
+          }
+        `}</style>
       </Modal>
     </StrictMode>
   );
