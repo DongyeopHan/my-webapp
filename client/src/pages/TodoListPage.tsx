@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from './TodoListPage.module.css';
 import { todoAPI } from '../services/api';
-import { ConfirmModal } from '../components/ConfirmModal';
 import { Button } from '../components/Button';
 import type { User } from '../types/user';
 import type { Todo } from '../types/todo';
