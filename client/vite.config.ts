@@ -7,38 +7,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       devOptions: {
         enabled: false,
       },
-      includeAssets: ['vite.svg', 'apple-touch-icon.png'],
-      manifest: {
-        name: "동희부부's 앱",
-        short_name: "동희부부's 앱",
-        description: '성경통독, TODO, 가계부 앱',
-        theme_color: '#ffb088',
-        background_color: '#ffffff',
-        display: 'standalone',
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
@@ -68,6 +43,33 @@ export default defineConfig({
                 statuses: [0, 200],
               },
             },
+          },
+        ],
+      },
+      includeAssets: ['vite.svg', 'apple-touch-icon.png'],
+      manifest: {
+        name: "동희부부's 앱",
+        short_name: "동희부부's 앱",
+        description: '성경통독, TODO, 가계부 앱',
+        theme_color: '#ffb088',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },
