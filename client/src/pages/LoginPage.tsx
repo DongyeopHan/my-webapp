@@ -111,6 +111,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <Button
             type="button"
             variant="text"
+            size="small"
             fullWidth
             onClick={() => {
               setIsSignup(!isSignup);

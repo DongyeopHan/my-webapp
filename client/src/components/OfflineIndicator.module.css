@@ -1,0 +1,37 @@
+.offlineBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #ff6b6b;
+  color: white;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 9999;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.offlineIcon {
+  font-size: 1.2rem;
+}
+
+.offlineText {
+  margin: 0;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

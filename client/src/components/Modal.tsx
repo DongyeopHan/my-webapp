@@ -27,7 +27,7 @@ export function Modal({
       <div
         className={styles.modalContent}
         onClick={(e) => e.stopPropagation()}
-        style={maxWidth ? { maxWidth } : undefined}
+        style={{ '--modal-max-width': maxWidth } as React.CSSProperties}
       >
         {title && (
           <div className={styles.modalHeader}>

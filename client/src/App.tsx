@@ -4,6 +4,7 @@ import { LedgerPage } from './pages/LedgerPage';
 import { BiblePage } from './pages/BiblePage';
 import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import type { User } from './types/user';
 
 type MenuItem = {
@@ -70,6 +71,7 @@ function App() {
 
   return (
     <div className="app">
+      <OfflineIndicator />
       <header className="app-header">
         <h1 className="app-title" onClick={handleHomeClick}>
           동희부부's 앱
