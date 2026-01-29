@@ -48,9 +48,13 @@
 }
 
 .formGroup label {
-  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #5d4e37;
+  font-size: 14px;
+}
+
+.submitButton {
+  margin-bottom: 16px;
 }
 
 .formGroup input,

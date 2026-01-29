@@ -214,7 +214,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
   return (
     <div className={styles.todoPage}>
       <div className={styles.todoHeader}>
-        <h2 className={styles.todoTitle}>TODO-LIST</h2>
+        <h2 className={styles.todoTitle}>Todo List</h2>
         <div className={styles.todoStats}>
           <span className={styles.completedCount}>{completedCount}</span>
           <span className={styles.statsSeparator}> / </span>

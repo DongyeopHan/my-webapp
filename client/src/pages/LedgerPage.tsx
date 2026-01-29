@@ -184,6 +184,7 @@ export function LedgerPage() {
           size="large"
           fullWidth
           disabled={!isFormValid || isSubmitting}
+          className={styles.submitButton}
         >
           {isSubmitting ? '저장 중...' : '저장하기'}
         </Button>

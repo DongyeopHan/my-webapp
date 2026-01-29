@@ -14,7 +14,7 @@ type MenuItem = {
 type PageType = 'home' | 'todo' | 'bible' | 'ledger' | 'inbody';
 
 const MENU_ITEMS: MenuItem[] = [
-  { id: 'todo', label: '✅TODO-LIST' },
+  { id: 'todo', label: '✅Todo List' },
   { id: 'bible', label: '📖성경통독' },
   { id: 'ledger', label: '📒가계부' },
   { id: 'inbody', label: '📊인바디 기록' },

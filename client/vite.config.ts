@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       devOptions: {
         enabled: false,
       },
@@ -50,7 +50,7 @@ export default defineConfig({
       manifest: {
         name: "동희부부's 앱",
         short_name: "동희부부's 앱",
-        description: '성경통독, TODO, 가계부 앱',
+        description: '성경통독, Todo, 가계부 앱',
         theme_color: '#ffb088',
         background_color: '#ffffff',
         display: 'standalone',
