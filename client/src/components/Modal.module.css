@@ -1,0 +1,81 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 2px solid #ffe0d0;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #5d4e37;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalClose:hover {
+  color: #333;
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.modalFooter {
+  padding: 1.5rem;
+  border-top: 2px solid #ffe0d0;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* 반응형 */
+@media (max-width: 767px) {
+  .modalContent {
+    width: 95%;
+  }
+
+  .modalHeader,
+  .modalBody,
+  .modalFooter {
+    padding: 1rem;
+  }
+}

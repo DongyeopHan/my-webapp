@@ -1,0 +1,84 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.confirmModal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.confirmTitle {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #5d4e37;
+  padding: 1.5rem;
+  border-bottom: 2px solid #ffe0d0;
+}
+
+.confirmMessage {
+  margin: 0;
+  padding: 1.5rem;
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.confirmButtons {
+  padding: 1.5rem;
+  border-top: 2px solid #ffe0d0;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.cancelButton,
+.confirmButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton {
+  background-color: #e8e8e8;
+  color: #5d4e37;
+}
+
+.cancelButton:hover {
+  background-color: #d8d8d8;
+  transform: translateY(-2px);
+}
+
+.confirmButton {
+  background-color: #dc3545;
+  color: white;
+}
+
+.confirmButton:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.confirmButton.primary {
+  background-color: #ffb088;
+}
+
+.confirmButton.primary:hover {
+  background-color: #ff9a6c;
+}

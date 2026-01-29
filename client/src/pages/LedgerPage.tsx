@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styles from './LedgerPage.module.css';
+import { Button } from '../components/Button';
 
 type LedgerFormData = {
   date: string;
@@ -177,13 +178,15 @@ export function LedgerPage() {
           />
         </div>
 
-        <button
+        <Button
           type="submit"
-          className={styles.submitButton}
+          variant="primary"
+          size="large"
+          fullWidth
           disabled={!isFormValid || isSubmitting}
         >
           {isSubmitting ? '저장 중...' : '저장하기'}
-        </button>
+        </Button>
 
         {submitMessage && (
           <p className={styles.submitMessage}>{submitMessage}</p>

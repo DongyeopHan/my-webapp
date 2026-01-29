@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import styles from './LoginPage.module.css';
 import { authAPI } from '../services/api';
+import { Button } from '../components/Button';
 import type { User } from '../types/user';
 
 type LoginPageProps = {
@@ -92,9 +93,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           )}
           {error && <div className={styles.errorMessage}>{error}</div>}
-          <button
+          <Button
             type="submit"
-            className={styles.loginButton}
+            variant="primary"
+            size="large"
+            fullWidth
             disabled={loading}
           >
             {loading
@@ -104,10 +107,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               : isSignup
                 ? '회원가입'
                 : '로그인'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={styles.toggleButton}
+            variant="text"
+            fullWidth
             onClick={() => {
               setIsSignup(!isSignup);
               setError('');
@@ -117,7 +121,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {isSignup
               ? '이미 계정이 있으신가요? 로그인'
               : '계정이 없으신가요? 회원가입'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

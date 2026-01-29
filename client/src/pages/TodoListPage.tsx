@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import styles from './TodoListPage.module.css';
 import { todoAPI } from '../services/api';
+import { ConfirmModal } from '../components/ConfirmModal';
+import { Button } from '../components/Button';
 import type { User } from '../types/user';
 import type { Todo } from '../types/todo';
 
@@ -219,12 +221,13 @@ export function TodoListPage({ user }: TodoListPageProps) {
           <span className={styles.statsSeparator}> / </span>
           <span className={styles.totalCount}>{totalCount}</span>
         </div>
-        <button
-          className={styles.addTodoButton}
+        <Button
+          variant="primary"
+          size="small"
           onClick={() => setShowAddModal(true)}
         >
           + 추가
-        </button>
+        </Button>
       </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>}
@@ -387,33 +390,24 @@ export function TodoListPage({ user }: TodoListPageProps) {
             <div className={styles.modalFooter}>
               {isEditMode ? (
                 <>
-                  <button
-                    className={styles.cancelButton}
-                    onClick={handleCancelEdit}
-                  >
+                  <Button variant="ghost" onClick={handleCancelEdit}>
                     취소
-                  </button>
-                  <button
-                    className={styles.submitButton}
-                    onClick={handleUpdateTodo}
-                  >
+                  </Button>
+                  <Button variant="primary" onClick={handleUpdateTodo}>
                     저장
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button
-                    className={styles.editButton}
-                    onClick={handleEditClick}
-                  >
+                  <Button variant="secondary" onClick={handleEditClick}>
                     수정
-                  </button>
-                  <button
-                    className={styles.deleteButton}
+                  </Button>
+                  <Button
+                    variant="danger"
                     onClick={() => handleDeleteTodo(selectedTodo._id)}
                   >
                     삭제
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -516,9 +510,9 @@ export function TodoListPage({ user }: TodoListPageProps) {
               </div>
             </div>
             <div className={styles.modalFooter}>
-              <button className={styles.submitButton} onClick={handleAddTodo}>
+              <Button variant="primary" onClick={handleAddTodo}>
                 추가
-              </button>
+              </Button>
             </div>
           </div>
         </div>

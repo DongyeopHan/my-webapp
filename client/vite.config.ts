@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: false,
+      },
       includeAssets: ['vite.svg', 'apple-touch-icon.png'],
       manifest: {
         name: "동희부부's 앱",
