@@ -1,4 +1,4 @@
-.todo-page {
+.todoPage {
   width: 100%;
   height: 100%;
   display: flex;
@@ -6,7 +6,7 @@
   padding: 16px;
 }
 
-.todo-loading {
+.todoLoading {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,21 +15,21 @@
   color: #6c757d;
 }
 
-.todo-header {
+.todoHeader {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 24px;
 }
 
-.todo-title {
+.todoTitle {
   font-size: 16px;
   font-weight: 600;
   color: #333;
   margin: 0;
 }
 
-.todo-stats {
+.todoStats {
   display: flex;
   align-items: center;
   font-size: 1rem;
@@ -37,20 +37,20 @@
   margin-right: auto;
 }
 
-.completed-count {
+.completedCount {
   color: #ffb088;
 }
 
-.stats-separator {
+.statsSeparator {
   color: #999;
   margin: 0 0.25rem;
 }
 
-.total-count {
+.totalCount {
   color: #5d4e37;
 }
 
-.add-todo-button {
+.addTodoButton {
   padding: 0.5rem 1rem;
   background-color: #ffb088;
   color: white;
@@ -62,12 +62,12 @@
   transition: all 0.2s;
 }
 
-.add-todo-button:hover {
+.addTodoButton:hover {
   background-color: #ff9a6c;
   transform: translateY(-2px);
 }
 
-.error-message {
+.errorMessage {
   padding: 0.75rem;
   background-color: #f8d7da;
   color: #721c24;
@@ -78,7 +78,7 @@
   margin-bottom: 1rem;
 }
 
-.todo-list {
+.todoList {
   flex: 1;
   overflow-y: auto;
   display: flex;
@@ -86,14 +86,14 @@
   gap: 12px;
 }
 
-.empty-message {
+.emptyMessage {
   text-align: center;
   color: #999;
   font-size: 1rem;
   margin-top: 2rem;
 }
 
-.todo-item {
+.todoItem {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -104,25 +104,25 @@
   transition: all 0.2s;
 }
 
-.todo-item:hover {
+.todoItem:hover {
   background-color: #ffe0d0;
   transform: translateX(4px);
 }
 
-.todo-item.completed {
+.todoItem.completed {
   opacity: 0.6;
   background-color: #f5f5f5;
   border-color: #e0e0e0;
 }
 
-.todo-checkbox {
+.todoCheckbox {
   width: 20px;
   height: 20px;
   cursor: pointer;
   accent-color: #ffb088;
 }
 
-.todo-item-title {
+.todoItemTitle {
   flex: 1;
   font-size: 1rem;
   font-weight: 500;
@@ -131,19 +131,19 @@
   user-select: none;
 }
 
-.todo-item.completed .todo-item-title {
+.todoItem.completed .todoItemTitle {
   text-decoration: line-through;
   color: #999;
 }
 
-.todo-time {
+.todoTime {
   font-size: 0.9rem;
   color: #ffb088;
   font-weight: 500;
 }
 
 /* 모달 스타일 */
-.modal-overlay {
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -157,7 +157,7 @@
   padding: 1rem;
 }
 
-.modal-content {
+.modalContent {
   background: white;
   border-radius: 1rem;
   width: 90%;
@@ -167,7 +167,7 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-.modal-header {
+.modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -175,13 +175,13 @@
   border-bottom: 2px solid #ffe0d0;
 }
 
-.modal-header h3 {
+.modalHeader h3 {
   margin: 0;
   font-size: 1.3rem;
   color: #5d4e37;
 }
 
-.modal-close {
+.modalClose {
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -196,31 +196,31 @@
   justify-content: center;
 }
 
-.modal-close:hover {
+.modalClose:hover {
   color: #333;
 }
 
-.modal-body {
+.modalBody {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.todo-page .form-group {
+.formGroup {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.todo-page .form-group label {
+.formGroup label {
   font-weight: 600;
   color: #5d4e37;
   font-size: 0.95rem;
 }
 
-.todo-page .form-group input,
-.todo-page .form-group textarea {
+.formGroup input,
+.formGroup textarea {
   padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
@@ -229,24 +229,24 @@
   font-family: inherit;
 }
 
-.todo-page .form-group input:focus,
-.todo-page .form-group textarea:focus {
+.formGroup input:focus,
+.formGroup textarea:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.todo-page .todo-page .form-group textarea {
+.formGroup textarea {
   resize: vertical;
   min-height: 100px;
 }
 
-.todo-page .time-input-group {
+.timeInputGroup {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.todo-page .period-select {
+.periodSelect {
   padding: 0.2rem;
   border: 2px solid #ffe0d0;
   border-radius: 0.5rem;
@@ -257,12 +257,12 @@
   min-width: 80px;
 }
 
-.todo-page .period-select:focus {
+.periodSelect:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.todo-page .hour-input {
+.hourInput {
   width: 80px;
   padding: 0.2rem;
   border: 2px solid #ffe0d0;
@@ -272,19 +272,19 @@
   transition: border-color 0.2s;
 }
 
-.todo-page .hour-input:focus {
+.hourInput:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.todo-page .hour-label,
-.todo-page .minute-label {
+.hourLabel,
+.minuteLabel {
   font-size: 1rem;
   color: #5d4e37;
   font-weight: 500;
 }
 
-.todo-page .minute-input {
+.minuteInput {
   width: 80px;
   padding: 0.2rem;
   border: 2px solid #ffe0d0;
@@ -294,24 +294,24 @@
   transition: border-color 0.2s;
 }
 
-.todo-page .todo-page .minute-input:focus {
+.minuteInput:focus {
   outline: none;
   border-color: #ffb088;
 }
 
-.todo-page .detail-item {
+.detailItem {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.todo-page .detail-item label {
+.detailItem label {
   font-weight: 600;
   color: #5d4e37;
   font-size: 0.9rem;
 }
 
-.todo-page .detail-item p {
+.detailItem p {
   margin: 0;
   padding: 0.75rem;
   background-color: #fff4ee;
@@ -319,12 +319,12 @@
   color: #333;
 }
 
-.todo-page .detail-content {
+.detailContent {
   white-space: pre-wrap;
   line-height: 1.6;
 }
 
-.modal-footer {
+.modalFooter {
   padding: 1.5rem;
   border-top: 2px solid #ffe0d0;
   display: flex;
@@ -332,10 +332,10 @@
   justify-content: flex-end;
 }
 
-.todo-page .submit-button,
-.todo-page .delete-button,
-.todo-page .edit-button,
-.todo-page .cancel-button {
+.submitButton,
+.deleteButton,
+.editButton,
+.cancelButton {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.5rem;
@@ -345,92 +345,96 @@
   transition: all 0.2s;
 }
 
-.todo-page .submit-button {
+.submitButton {
   background-color: #ffb088;
   color: white;
 }
 
-.todo-page .submit-button:hover {
+.submitButton:hover {
   background-color: #ff9a6c;
   transform: translateY(-2px);
 }
 
-.todo-page .edit-button {
+.editButton {
   background-color: #ffd4c4;
   color: #5d4e37;
 }
 
-.todo-page .edit-button:hover {
+.editButton:hover {
   background-color: #ffb088;
   color: white;
   transform: translateY(-2px);
 }
 
-.todo-page .cancel-button {
+.cancelButton {
   background-color: #e8e8e8;
   color: #5d4e37;
 }
 
-.todo-page .cancel-button:hover {
+.cancelButton:hover {
   background-color: #d8d8d8;
   transform: translateY(-2px);
 }
 
-.todo-page .delete-button {
+.deleteButton {
   background-color: #dc3545;
   color: white;
 }
 
-.todo-page .delete-button:hover {
+.deleteButton:hover {
   background-color: #c82333;
   transform: translateY(-2px);
 }
 
 /* 확인 모달 스타일 */
-.confirm-modal {
-  max-width: 350px;
-  text-align: center;
+.confirmModal {
+  max-width: 400px;
 }
 
-.confirm-modal h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
-  color: #333;
+.confirmModal h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #5d4e37;
+  padding: 1rem;
+  border-bottom: 2px solid #ffe0d0;
 }
 
-.confirm-modal p {
-  margin: 0 0 1.5rem 0;
+.confirmModal p {
+  margin: 0;
+  padding: 1.5rem;
   font-size: 1rem;
   color: #666;
   line-height: 1.5;
+  text-align: center;
 }
 
-.confirm-buttons {
+.confirmButtons {
+  padding: 1rem;
+  border-top: 2px solid #ffe0d0;
   display: flex;
   gap: 0.75rem;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
-.confirm-buttons button {
-  flex: 1;
-  padding: 0.75rem;
+.confirmButtons button {
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 /* 반응형 */
 @media (max-width: 767px) {
-  .modal-content {
+  .modalContent {
     width: 95%;
   }
 
-  .modal-header,
-  .modal-body,
-  .modal-footer {
+  .modalHeader,
+  .modalBody,
+  .modalFooter {
     padding: 1rem;
   }
 }

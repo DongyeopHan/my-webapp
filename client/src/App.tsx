@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
-import { ScripturePage } from './pages/ScripturePage';
+import { BiblePage } from './pages/BiblePage';
 import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import type { User } from './types/user';
@@ -11,11 +11,11 @@ type MenuItem = {
   label: string;
 };
 
-type PageType = 'home' | 'todo' | 'scripture' | 'ledger' | 'inbody';
+type PageType = 'home' | 'todo' | 'bible' | 'ledger' | 'inbody';
 
 const MENU_ITEMS: MenuItem[] = [
   { id: 'todo', label: '✅TODO-LIST' },
-  { id: 'scripture', label: '📖성경통독' },
+  { id: 'bible', label: '📖성경통독' },
   { id: 'ledger', label: '📒가계부' },
   { id: 'inbody', label: '📊인바디 기록' },
 ];
@@ -52,8 +52,8 @@ function App() {
     switch (currentPage) {
       case 'ledger':
         return <LedgerPage />;
-      case 'scripture':
-        return <ScripturePage user={user!} />;
+      case 'bible':
+        return <BiblePage user={user!} />;
       case 'todo':
         return <TodoListPage user={user!} />;
       case 'inbody':

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import './TodoListPage.css';
+import styles from './TodoListPage.module.css';
 import { todoAPI } from '../services/api';
 import type { User } from '../types/user';
 import type { Todo } from '../types/todo';
@@ -204,53 +204,56 @@ export function TodoListPage({ user }: TodoListPageProps) {
   };
 
   if (loading) {
-    return <div className="todo-loading">불러오는 중...</div>;
+    return <div className={styles.todoLoading}>불러오는 중...</div>;
   }
 
   const completedCount = todos.filter((todo) => todo.completed).length;
   const totalCount = todos.length;
 
   return (
-    <div className="todo-page">
-      <div className="todo-header">
-        <h2 className="todo-title">TODO-LIST</h2>
-        <div className="todo-stats">
-          <span className="completed-count">{completedCount}</span>
-          <span className="stats-separator"> / </span>
-          <span className="total-count">{totalCount}</span>
+    <div className={styles.todoPage}>
+      <div className={styles.todoHeader}>
+        <h2 className={styles.todoTitle}>TODO-LIST</h2>
+        <div className={styles.todoStats}>
+          <span className={styles.completedCount}>{completedCount}</span>
+          <span className={styles.statsSeparator}> / </span>
+          <span className={styles.totalCount}>{totalCount}</span>
         </div>
         <button
-          className="add-todo-button"
+          className={styles.addTodoButton}
           onClick={() => setShowAddModal(true)}
         >
           + 추가
         </button>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className={styles.errorMessage}>{error}</div>}
 
-      <div className="todo-list">
+      <div className={styles.todoList}>
         {todos.length === 0 ? (
-          <p className="empty-message">등록된 Todo가 없습니다</p>
+          <p className={styles.emptyMessage}>등록된 Todo가 없습니다</p>
         ) : (
           todos.map((todo) => (
             <div
               key={todo._id}
-              className={`todo-item ${todo.completed ? 'completed' : ''}`}
+              className={`${styles.todoItem} ${todo.completed ? styles.completed : ''}`}
             >
               <input
                 type="checkbox"
                 checked={todo.completed}
                 onChange={() => handleToggleTodo(todo._id)}
-                className="todo-checkbox"
+                className={styles.todoCheckbox}
               />
               <span
-                className="todo-item-title"
+                className={styles.todoItemTitle}
                 onClick={() => setSelectedTodo(todo)}
               >
                 {todo.title}
               </span>
-              <span className="todo-time" onClick={() => setSelectedTodo(todo)}>
+              <span
+                className={styles.todoTime}
+                onClick={() => setSelectedTodo(todo)}
+              >
                 {todo.time}
               </span>
             </div>
@@ -261,17 +264,20 @@ export function TodoListPage({ user }: TodoListPageProps) {
       {/* 상세보기 모달 */}
       {selectedTodo && (
         <div
-          className="modal-overlay"
+          className={styles.modalOverlay}
           onClick={() => {
             setSelectedTodo(null);
             setIsEditMode(false);
           }}
         >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
               <h3>Todo {isEditMode ? '수정' : '상세'}</h3>
               <button
-                className="modal-close"
+                className={styles.modalClose}
                 onClick={() => {
                   setSelectedTodo(null);
                   setIsEditMode(false);
@@ -280,11 +286,11 @@ export function TodoListPage({ user }: TodoListPageProps) {
                 ✕
               </button>
             </div>
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               {isEditMode ? (
                 // 수정 모드
                 <>
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>제목</label>
                     <input
                       type="text"
@@ -295,15 +301,15 @@ export function TodoListPage({ user }: TodoListPageProps) {
                       placeholder="제목을 입력하세요"
                     />
                   </div>
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>시간</label>
-                    <div className="time-input-group">
+                    <div className={styles.timeInputGroup}>
                       <select
                         value={editTodo.period}
                         onChange={(e) =>
                           setEditTodo({ ...editTodo, period: e.target.value })
                         }
-                        className="period-select"
+                        className={styles.periodSelect}
                       >
                         <option value="오전">오전</option>
                         <option value="오후">오후</option>
@@ -323,9 +329,9 @@ export function TodoListPage({ user }: TodoListPageProps) {
                           }
                         }}
                         placeholder="0-11"
-                        className="hour-input"
+                        className={styles.hourInput}
                       />
-                      <span className="hour-label">시</span>
+                      <span className={styles.hourLabel}>시</span>
                       <input
                         type="number"
                         min="0"
@@ -341,12 +347,12 @@ export function TodoListPage({ user }: TodoListPageProps) {
                           }
                         }}
                         placeholder="00-59"
-                        className="minute-input"
+                        className={styles.minuteInput}
                       />
-                      <span className="minute-label">분</span>
+                      <span className={styles.minuteLabel}>분</span>
                     </div>
                   </div>
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>내용</label>
                     <textarea
                       value={editTodo.content}
@@ -361,38 +367,49 @@ export function TodoListPage({ user }: TodoListPageProps) {
               ) : (
                 // 보기 모드
                 <>
-                  <div className="detail-item">
+                  <div className={styles.detailItem}>
                     <label>제목</label>
                     <p>{selectedTodo.title}</p>
                   </div>
-                  <div className="detail-item">
+                  <div className={styles.detailItem}>
                     <label>시간</label>
                     <p>{selectedTodo.time}</p>
                   </div>
-                  <div className="detail-item">
+                  <div className={styles.detailItem}>
                     <label>내용</label>
-                    <p className="detail-content">{selectedTodo.content}</p>
+                    <p className={styles.detailContent}>
+                      {selectedTodo.content}
+                    </p>
                   </div>
                 </>
               )}
             </div>
-            <div className="modal-footer">
+            <div className={styles.modalFooter}>
               {isEditMode ? (
                 <>
-                  <button className="cancel-button" onClick={handleCancelEdit}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={handleCancelEdit}
+                  >
                     취소
                   </button>
-                  <button className="submit-button" onClick={handleUpdateTodo}>
+                  <button
+                    className={styles.submitButton}
+                    onClick={handleUpdateTodo}
+                  >
                     저장
                   </button>
                 </>
               ) : (
                 <>
-                  <button className="edit-button" onClick={handleEditClick}>
+                  <button
+                    className={styles.editButton}
+                    onClick={handleEditClick}
+                  >
                     수정
                   </button>
                   <button
-                    className="delete-button"
+                    className={styles.deleteButton}
                     onClick={() => handleDeleteTodo(selectedTodo._id)}
                   >
                     삭제
@@ -406,19 +423,25 @@ export function TodoListPage({ user }: TodoListPageProps) {
 
       {/* 추가 모달 */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
               <h3>Todo 추가</h3>
               <button
-                className="modal-close"
+                className={styles.modalClose}
                 onClick={() => setShowAddModal(false)}
               >
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
                 <label>제목</label>
                 <input
                   type="text"
@@ -429,15 +452,15 @@ export function TodoListPage({ user }: TodoListPageProps) {
                   placeholder="제목을 입력하세요"
                 />
               </div>
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>시간</label>
-                <div className="time-input-group">
+                <div className={styles.timeInputGroup}>
                   <select
                     value={newTodo.period}
                     onChange={(e) =>
                       setNewTodo({ ...newTodo, period: e.target.value })
                     }
-                    className="period-select"
+                    className={styles.periodSelect}
                   >
                     <option value="오전">오전</option>
                     <option value="오후">오후</option>
@@ -457,9 +480,9 @@ export function TodoListPage({ user }: TodoListPageProps) {
                       }
                     }}
                     placeholder="0-11"
-                    className="hour-input"
+                    className={styles.hourInput}
                   />
-                  <span className="hour-label">시</span>
+                  <span className={styles.hourLabel}>시</span>
                   <input
                     type="number"
                     min="0"
@@ -475,12 +498,12 @@ export function TodoListPage({ user }: TodoListPageProps) {
                       }
                     }}
                     placeholder="00-59"
-                    className="minute-input"
+                    className={styles.minuteInput}
                   />
-                  <span className="minute-label">분</span>
+                  <span className={styles.minuteLabel}>분</span>
                 </div>
               </div>
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>내용</label>
                 <textarea
                   value={newTodo.content}
@@ -492,8 +515,8 @@ export function TodoListPage({ user }: TodoListPageProps) {
                 />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="submit-button" onClick={handleAddTodo}>
+            <div className={styles.modalFooter}>
+              <button className={styles.submitButton} onClick={handleAddTodo}>
                 추가
               </button>
             </div>
@@ -503,18 +526,18 @@ export function TodoListPage({ user }: TodoListPageProps) {
 
       {/* 삭제 확인 모달 */}
       {deleteConfirm.isOpen && (
-        <div className="modal-overlay" onClick={cancelDelete}>
+        <div className={styles.modalOverlay} onClick={cancelDelete}>
           <div
-            className="modal-content confirm-modal"
+            className={`${styles.modalContent} ${styles.confirmModal}`}
             onClick={(e) => e.stopPropagation()}
           >
             <h3>삭제 확인</h3>
             <p>정말 삭제하시겠습니까?</p>
-            <div className="confirm-buttons">
-              <button className="cancel-button" onClick={cancelDelete}>
+            <div className={styles.confirmButtons}>
+              <button className={styles.cancelButton} onClick={cancelDelete}>
                 취소
               </button>
-              <button className="delete-button" onClick={confirmDelete}>
+              <button className={styles.deleteButton} onClick={confirmDelete}>
                 삭제
               </button>
             </div>

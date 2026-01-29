@@ -1,11 +1,11 @@
-.scripture-page {
+﻿.biblePage {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
 
-.scripture-loading {
+.bibleLoading {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,7 +14,7 @@
   color: #6c757d;
 }
 
-.scripture-header {
+.bibleHeader {
   padding: 1rem 1rem 0.3rem 1rem;
   background-color: transparent;
   border-bottom: none;
@@ -24,14 +24,14 @@
   flex-shrink: 0;
 }
 
-.testament-tabs {
+.testamentTabs {
   display: flex;
   gap: 0.5rem;
   padding: 0 1rem 0.5rem 1rem;
   flex-shrink: 0;
 }
 
-.tab-button {
+.tabButton {
   flex: 1;
   padding: 0.75rem 1rem;
   background-color: white;
@@ -45,33 +45,33 @@
   gap: 0.5rem;
 }
 
-.tab-button:hover {
+.tabButton:hover {
   border-color: #ffd4c4;
   background-color: #fff9f5;
 }
 
-.tab-button.active {
+.tabButton.active {
   background: linear-gradient(135deg, #ffb088, #ff9966);
   border-color: #ffb088;
   color: white;
 }
 
-.tab-name {
+.tabName {
   font-size: 1rem;
   font-weight: 600;
 }
 
-.tab-progress {
+.tabProgress {
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-.tab-button.active .tab-name,
-.tab-button.active .tab-progress {
+.tabButton.active .tabName,
+.tabButton.active .tabProgress {
   color: white;
 }
 
-.scripture-title {
+.bibleTitle {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
@@ -85,7 +85,7 @@
   color: #ffb088;
 }
 
-.back-button {
+.backButton {
   padding: 0.5rem 1rem;
   background: none;
   color: #ffb088;
@@ -96,12 +96,12 @@
   transition: background-color 0.2s;
 }
 
-.back-button:hover {
+.backButton:hover {
   background-color: #ffe0d0;
 }
 
-.scripture-book-list,
-.scripture-chapter-list {
+.bibleBookList,
+.bibleChapterList {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
@@ -110,7 +110,7 @@
   align-content: start;
 }
 
-.book-button {
+.bookButton {
   width: 144px;
   padding: 1rem;
   background-color: white;
@@ -125,47 +125,47 @@
   text-align: left;
 }
 
-.book-button:hover {
+.bookButton:hover {
   border-color: #ffd4c4;
   background-color: #fff9f5;
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.book-button.completed {
+.bookButton.completed {
   background: linear-gradient(135deg, #ffb088, #ff9966);
   border-color: #ffb088;
 }
 
-.book-button.completed .book-name {
+.bookButton.completed .bookName {
   color: white;
 }
 
-.book-button.completed .book-progress {
+.bookButton.completed .bookProgress {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.book-button.completed:hover {
+.bookButton.completed:hover {
   background: linear-gradient(135deg, #ff9966, #ff8844);
   border-color: #ff9966;
 }
 
-.book-name {
+.bookName {
   font-size: 1rem;
   font-weight: 600;
   color: #212529;
 }
 
-.book-progress {
+.bookProgress {
   font-size: 0.85rem;
   color: #6c757d;
 }
 
-.scripture-chapter-list {
+.bibleChapterList {
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
 }
 
-.chapter-button {
+.chapterButton {
   padding: 1rem;
   background-color: #e8e8e8;
   color: #5d4e37;
@@ -178,59 +178,59 @@
   min-width: 75px;
 }
 
-.chapter-button:hover {
+.chapterButton:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   background-color: #d8d8d8;
 }
 
-.chapter-button.read {
+.chapterButton.read {
   background-color: #ffb088;
   color: white;
 }
 
-.chapter-button.read:hover {
+.chapterButton.read:hover {
   background-color: #ff9a6c;
 }
 
 @media (max-width: 400px) {
-  .scripture-book-list {
+  .bibleBookList {
     grid-template-columns: repeat(2, 1fr);
   }
-  .scripture-chapter-list {
+  .bibleChapterList {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (min-width: 401px) and (max-width: 470px) {
-  .scripture-book-list {
+  .bibleBookList {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .scripture-chapter-list {
+  .bibleChapterList {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
 /* mobile */
 @media (min-width: 471px) and (max-width: 650px) {
-  .scripture-book-list {
+  .bibleBookList {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .scripture-chapter-list {
+  .bibleChapterList {
     grid-template-columns: repeat(5, 1fr);
   }
 
-  .scripture-title {
+  .bibleTitle {
     font-size: 1.25rem;
   }
 
-  .book-button {
+  .bookButton {
     padding: 0.75rem;
   }
 
-  .chapter-button {
+  .chapterButton {
     padding: 0.75rem;
     font-size: 0.9rem;
   }
@@ -238,28 +238,28 @@
 
 /* tablet */
 @media (min-width: 651px) and (max-width: 800px) {
-  .scripture-book-list {
+  .bibleBookList {
     grid-template-columns: repeat(4, 1fr);
   }
 
-  .scripture-chapter-list {
+  .bibleChapterList {
     grid-template-columns: repeat(7, 1fr);
   }
 }
 
 /* desktop */
 @media (min-width: 801px) {
-  .scripture-book-list {
+  .bibleBookList {
     grid-template-columns: repeat(5, 1fr);
   }
 
-  .scripture-chapter-list {
+  .bibleChapterList {
     grid-template-columns: repeat(9, 1fr);
   }
 }
 
 /* 모달 스타일 */
-.modal-overlay {
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -272,7 +272,7 @@
   z-index: 1000;
 }
 
-.modal-content {
+.modalContent {
   background: white;
   border-radius: 16px;
   padding: 2rem;
@@ -281,14 +281,14 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.error-modal h3 {
+.errorModal h3 {
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
   color: #333;
   text-align: center;
 }
 
-.error-modal p {
+.errorModal p {
   margin: 0 0 1.5rem 0;
   font-size: 1rem;
   color: #666;
@@ -296,7 +296,7 @@
   line-height: 1.5;
 }
 
-.modal-button {
+.modalButton {
   width: 100%;
   padding: 0.75rem;
   background: linear-gradient(135deg, #ffb088, #ff9966);
@@ -309,10 +309,10 @@
   transition: transform 0.2s;
 }
 
-.modal-button:hover {
+.modalButton:hover {
   transform: translateY(-2px);
 }
 
-.modal-button:active {
+.modalButton:active {
   transform: translateY(0);
 }

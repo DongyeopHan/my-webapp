@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './LoginPage.css';
+import styles from './LoginPage.module.css';
 import { authAPI } from '../services/api';
 import type { User } from '../types/user';
 
@@ -50,11 +50,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <h2 className="login-title">{isSignup ? '회원가입' : '로그인'}</h2>
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
+    <div className={styles.loginPage}>
+      <div className={styles.loginContainer}>
+        <h2 className={styles.loginTitle}>
+          {isSignup ? '회원가입' : '로그인'}
+        </h2>
+        <form className={styles.loginForm} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
             <label htmlFor="username">아이디</label>
             <input
               type="text"
@@ -65,7 +67,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               disabled={loading}
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="password">비밀번호</label>
             <input
               type="password"
@@ -77,7 +79,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             />
           </div>
           {isSignup && (
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="name">이름</label>
               <input
                 type="text"
@@ -89,8 +91,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               />
             </div>
           )}
-          {error && <div className="error-message">{error}</div>}
-          <button type="submit" className="login-button" disabled={loading}>
+          {error && <div className={styles.errorMessage}>{error}</div>}
+          <button
+            type="submit"
+            className={styles.loginButton}
+            disabled={loading}
+          >
             {loading
               ? isSignup
                 ? '회원가입 중...'
@@ -101,7 +107,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </button>
           <button
             type="button"
-            className="toggle-button"
+            className={styles.toggleButton}
             onClick={() => {
               setIsSignup(!isSignup);
               setError('');

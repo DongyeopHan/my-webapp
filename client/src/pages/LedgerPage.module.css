@@ -1,4 +1,4 @@
-.ledger-page {
+.ledgerPage {
   width: 100%;
   height: 100%;
   display: flex;
@@ -6,15 +6,14 @@
   padding: 16px;
 }
 
-.ledger-header {
+.ledgerHeader {
   display: flex;
   align-items: center;
   gap: 12px;
-
   margin-bottom: 12px;
 }
 
-.back-button {
+.backButton {
   background: none;
   border: none;
   font-size: 16px;
@@ -25,37 +24,37 @@
   transition: background-color 0.2s;
 }
 
-.back-button:hover {
+.backButton:hover {
   background-color: #ffe0d0;
 }
 
-.ledger-title {
+.ledgerTitle {
   font-size: 20px;
   font-weight: bold;
   color: #333;
   margin: 0;
 }
 
-.ledger-form {
+.ledgerForm {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.ledger-page .form-group {
+.formGroup {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.ledger-page .form-group label {
+.formGroup label {
   font-size: 14px;
   font-weight: 600;
   color: #333;
 }
 
-.ledger-page .form-group input,
-.ledger-page .form-group select {
+.formGroup input,
+.formGroup select {
   padding: 6px 14px;
   font-size: 16px;
   border: 1px solid #ddd;
@@ -66,22 +65,22 @@
     box-shadow 0.2s;
 }
 
-.ledger-page .form-group input:focus,
-.ledger-page .form-group select:focus {
+.formGroup input:focus,
+.formGroup select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
-.ledger-page .form-group input::placeholder {
+.formGroup input::placeholder {
   color: #aaa;
 }
 
-.ledger-page .form-group select {
+.formGroup select {
   cursor: pointer;
 }
 
-.ledger-page .submit-button {
+.submitButton {
   margin-top: 8px;
   margin-bottom: 16px;
   padding: 16px;
@@ -97,21 +96,21 @@
     transform 0.2s;
 }
 
-.ledger-page .ledger-page .submit-button:hover:not(:disabled) {
+.submitButton:hover:not(:disabled) {
   transform: translateY(-2px);
   background: #ff9a6c;
 }
 
-.ledger-page .submit-button:active:not(:disabled) {
+.submitButton:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.ledger-page .submit-button:disabled {
+.submitButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.submit-message {
+.submitMessage {
   text-align: center;
   font-size: 14px;
   margin-top: 8px;
@@ -120,25 +119,25 @@
 
 /* 모바일 */
 @media (max-width: 480px) {
-  .ledger-page {
+  .ledgerPage {
     padding: 12px;
   }
 
-  .ledger-header {
+  .ledgerHeader {
     padding: 0.5rem 1rem 0rem 0rem;
   }
 
-  .ledger-title {
+  .ledgerTitle {
     font-size: 18px;
   }
 
-  .ledger-page .form-group input,
-  .ledger-page .form-group select {
+  .formGroup input,
+  .formGroup select {
     padding: 10px 12px;
     font-size: 15px;
   }
 
-  .ledger-page .submit-button {
+  .submitButton {
     padding: 14px;
     font-size: 15px;
   }

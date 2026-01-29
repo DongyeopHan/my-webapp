@@ -32,7 +32,7 @@ export const authAPI = {
   },
 };
 
-export const scriptureAPI = {
+export const bibleAPI = {
   getProgress: async (userId: string) => {
     const response = await fetch(`${API_URL}/scripture/${userId}`);
 

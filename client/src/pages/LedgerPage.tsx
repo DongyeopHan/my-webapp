@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './LedgerPage.css';
+import styles from './LedgerPage.module.css';
 
 type LedgerFormData = {
   date: string;
@@ -103,13 +103,13 @@ export function LedgerPage() {
     formData.paymentMethod;
 
   return (
-    <div className="ledger-page">
-      <div className="ledger-header">
-        <h2 className="ledger-title">가계부</h2>
+    <div className={styles.ledgerPage}>
+      <div className={styles.ledgerHeader}>
+        <h2 className={styles.ledgerTitle}>가계부</h2>
       </div>
 
-      <form className="ledger-form" onSubmit={handleSubmit}>
-        <div className="form-group">
+      <form className={styles.ledgerForm} onSubmit={handleSubmit}>
+        <div className={styles.formGroup}>
           <label htmlFor="date">날짜</label>
           <input
             type="date"
@@ -121,7 +121,7 @@ export function LedgerPage() {
           />
         </div>
 
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="category">카테고리</label>
           <select
             id="category"
@@ -139,7 +139,7 @@ export function LedgerPage() {
           </select>
         </div>
 
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="amount">금액</label>
           <input
             type="number"
@@ -153,7 +153,7 @@ export function LedgerPage() {
           />
         </div>
 
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="description">설명</label>
           <input
             type="text"
@@ -165,7 +165,7 @@ export function LedgerPage() {
           />
         </div>
 
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="paymentMethod">결제수단</label>
           <input
             type="text"
@@ -179,13 +179,15 @@ export function LedgerPage() {
 
         <button
           type="submit"
-          className="submit-button"
+          className={styles.submitButton}
           disabled={!isFormValid || isSubmitting}
         >
           {isSubmitting ? '저장 중...' : '저장하기'}
         </button>
 
-        {submitMessage && <p className="submit-message">{submitMessage}</p>}
+        {submitMessage && (
+          <p className={styles.submitMessage}>{submitMessage}</p>
+        )}
       </form>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import './ScripturePage.css';
-import { scriptureAPI } from '../services/api';
+import styles from './BiblePage.module.css';
+import { bibleAPI } from '../services/api';
 import type { User } from '../types/user';
 
 type Book = {
@@ -82,11 +82,11 @@ const BIBLE_BOOKS: Book[] = [
 const OLD_TESTAMENT = BIBLE_BOOKS.slice(0, 39); // 구약 39권
 const NEW_TESTAMENT = BIBLE_BOOKS.slice(39); // 신약 27권
 
-type ScripturePageProps = {
+type BiblePageProps = {
   user: User;
 };
 
-export function ScripturePage({ user }: ScripturePageProps) {
+export function BiblePage({ user }: BiblePageProps) {
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [readChapters, setReadChapters] = useState<Record<string, Set<number>>>(
     {},
@@ -107,7 +107,7 @@ export function ScripturePage({ user }: ScripturePageProps) {
     const loadProgress = async () => {
       try {
         setLoading(true);
-        const progress = await scriptureAPI.getProgress(user.userId);
+        const progress = await bibleAPI.getProgress(user.userId);
 
         // { bookName: [chapters] } → { bookName: Set<number> }
         const restored: Record<string, Set<number>> = {};
@@ -133,7 +133,7 @@ export function ScripturePage({ user }: ScripturePageProps) {
   const saveProgress = useCallback(
     async (bookName: string, chapters: Set<number>) => {
       try {
-        await scriptureAPI.saveProgress(
+        await bibleAPI.saveProgress(
           user.userId,
           bookName,
           Array.from(chapters),
@@ -252,42 +252,42 @@ export function ScripturePage({ user }: ScripturePageProps) {
 
   if (loading) {
     return (
-      <div className="scripture-page">
-        <div className="scripture-loading">불러오는 중...</div>
+      <div className={styles.biblePage}>
+        <div className={styles.bibleLoading}>불러오는 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="scripture-page">
+    <div className={styles.biblePage}>
       {!selectedBook ? (
         <>
-          <div className="scripture-header">
-            <h2 className="scripture-title">성경통독</h2>
+          <div className={styles.bibleHeader}>
+            <h2 className={styles.bibleTitle}>성경통독</h2>
           </div>
 
-          <div className="testament-tabs">
+          <div className={styles.testamentTabs}>
             <button
-              className={`tab-button ${activeTab === 'old' ? 'active' : ''}`}
+              className={`${styles.tabButton} ${activeTab === 'old' ? styles.active : ''}`}
               onClick={() => setActiveTab('old')}
             >
-              <span className="tab-name">구약</span>
-              <span className="tab-progress">
+              <span className={styles.tabName}>구약</span>
+              <span className={styles.tabProgress}>
                 {getTestamentProgress(OLD_TESTAMENT)}%
               </span>
             </button>
             <button
-              className={`tab-button ${activeTab === 'new' ? 'active' : ''}`}
+              className={`${styles.tabButton} ${activeTab === 'new' ? styles.active : ''}`}
               onClick={() => setActiveTab('new')}
             >
-              <span className="tab-name">신약</span>
-              <span className="tab-progress">
+              <span className={styles.tabName}>신약</span>
+              <span className={styles.tabProgress}>
                 {getTestamentProgress(NEW_TESTAMENT)}%
               </span>
             </button>
           </div>
 
-          <div className="scripture-book-list">
+          <div className={styles.bibleBookList}>
             {currentBooks.map((book) => {
               const readCount = getReadCount(book.name);
               const totalChapters = book.chapters;
@@ -299,11 +299,11 @@ export function ScripturePage({ user }: ScripturePageProps) {
               return (
                 <button
                   key={book.name}
-                  className={`book-button ${isCompleted ? 'completed' : ''}`}
+                  className={`${styles.bookButton} ${isCompleted ? styles.completed : ''}`}
                   onClick={() => setSelectedBook(book.name)}
                 >
-                  <span className="book-name">{book.name}</span>
-                  <span className="book-progress">
+                  <span className={styles.bookName}>{book.name}</span>
+                  <span className={styles.bookProgress}>
                     {readCount}/{totalChapters} ({progress}%)
                   </span>
                 </button>
@@ -313,16 +313,16 @@ export function ScripturePage({ user }: ScripturePageProps) {
         </>
       ) : (
         <>
-          <div className="scripture-header">
+          <div className={styles.bibleHeader}>
             <button
-              className="back-button"
+              className={styles.backButton}
               onClick={() => setSelectedBook(null)}
             >
               ← 뒤로
             </button>
-            <h2 className="scripture-title">{selectedBook}</h2>
+            <h2 className={styles.bibleTitle}>{selectedBook}</h2>
           </div>
-          <div className="scripture-chapter-list">
+          <div className={styles.bibleChapterList}>
             {selectedBookData &&
               Array.from(
                 { length: selectedBookData.chapters },
@@ -334,7 +334,7 @@ export function ScripturePage({ user }: ScripturePageProps) {
                 return (
                   <button
                     key={chapter}
-                    className={`chapter-button ${isRead ? 'read' : ''}`}
+                    className={`${styles.chapterButton} ${isRead ? styles.read : ''}`}
                     onClick={() => toggleChapter(selectedBook, chapter)}
                   >
                     {chapter}
@@ -349,17 +349,17 @@ export function ScripturePage({ user }: ScripturePageProps) {
       {/* 에러 모달 */}
       {errorModal.isOpen && (
         <div
-          className="modal-overlay"
+          className={styles.modalOverlay}
           onClick={() => setErrorModal({ isOpen: false, message: '' })}
         >
           <div
-            className="modal-content error-modal"
+            className={`${styles.modalContent} ${styles.errorModal}`}
             onClick={(e) => e.stopPropagation()}
           >
             <h3>알림</h3>
             <p>{errorModal.message}</p>
             <button
-              className="modal-button"
+              className={styles.modalButton}
               onClick={() => setErrorModal({ isOpen: false, message: '' })}
             >
               확인
