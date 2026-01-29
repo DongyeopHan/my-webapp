@@ -14,6 +14,10 @@ export function TodoListPage({ user }: TodoListPageProps) {
   const [error, setError] = useState('');
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    todoId: string | null;
+  }>({ isOpen: false, todoId: null });
   const [editTodo, setEditTodo] = useState({
     title: '',
     period: '오전',
@@ -117,18 +121,25 @@ export function TodoListPage({ user }: TodoListPageProps) {
   };
 
   const handleDeleteTodo = async (todoId: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) {
-      return;
-    }
+    setDeleteConfirm({ isOpen: true, todoId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.todoId) return;
 
     try {
-      await todoAPI.deleteTodo(todoId);
+      await todoAPI.deleteTodo(deleteConfirm.todoId);
       setSelectedTodo(null);
+      setDeleteConfirm({ isOpen: false, todoId: null });
       loadTodos();
     } catch (err) {
       setError('Todo 삭제에 실패했습니다');
       console.error(err);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ isOpen: false, todoId: null });
   };
 
   const handleEditClick = () => {
@@ -484,6 +495,27 @@ export function TodoListPage({ user }: TodoListPageProps) {
             <div className="modal-footer">
               <button className="submit-button" onClick={handleAddTodo}>
                 추가
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {deleteConfirm.isOpen && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div
+            className="modal-content confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>삭제 확인</h3>
+            <p>정말 삭제하시겠습니까?</p>
+            <div className="confirm-buttons">
+              <button className="cancel-button" onClick={cancelDelete}>
+                취소
+              </button>
+              <button className="delete-button" onClick={confirmDelete}>
+                삭제
               </button>
             </div>
           </div>

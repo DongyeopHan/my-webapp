@@ -115,7 +115,7 @@ body {
 }
 
 .menu-button {
-  min-width: 80px;
+  min-width: 105px;
   padding: 16px 8px;
   font-size: 14px;
   font-weight: 600;
@@ -146,7 +146,7 @@ body {
   box-shadow: 0 4px 12px rgba(255, 176, 136, 0.3);
 }
 
-@media (max-width: 400px) {
+@media (max-width: 465px) {
   .menu-buttons {
     grid-template-columns: repeat(2, 1fr);
   }

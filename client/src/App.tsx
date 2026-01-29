@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
 import { ScripturePage } from './pages/ScripturePage';
@@ -24,14 +24,10 @@ const USER_STORAGE_KEY = 'logged_in_user';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);

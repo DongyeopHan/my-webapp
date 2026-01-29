@@ -15,13 +15,60 @@
 }
 
 .scripture-header {
-  padding: 1rem 1rem 0rem 1rem;
+  padding: 1rem 1rem 0.3rem 1rem;
   background-color: transparent;
   border-bottom: none;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
+}
+
+.testament-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.5rem 1rem;
+  flex-shrink: 0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: 2px solid #dee2e6;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tab-button:hover {
+  border-color: #ffd4c4;
+  background-color: #fff9f5;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #ffb088, #ff9966);
+  border-color: #ffb088;
+  color: white;
+}
+
+.tab-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tab-progress {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tab-button.active .tab-name,
+.tab-button.active .tab-progress {
+  color: white;
 }
 
 .scripture-title {
@@ -64,6 +111,7 @@
 }
 
 .book-button {
+  width: 144px;
   padding: 1rem;
   background-color: white;
   border: 2px solid #dee2e6;
@@ -82,6 +130,24 @@
   background-color: #fff9f5;
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.book-button.completed {
+  background: linear-gradient(135deg, #ffb088, #ff9966);
+  border-color: #ffb088;
+}
+
+.book-button.completed .book-name {
+  color: white;
+}
+
+.book-button.completed .book-progress {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.book-button.completed:hover {
+  background: linear-gradient(135deg, #ff9966, #ff8844);
+  border-color: #ff9966;
 }
 
 .book-name {
@@ -190,4 +256,63 @@
   .scripture-chapter-list {
     grid-template-columns: repeat(9, 1fr);
   }
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.error-modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #333;
+  text-align: center;
+}
+
+.error-modal p {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.modal-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #ffb088, #ff9966);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.modal-button:hover {
+  transform: translateY(-2px);
+}
+
+.modal-button:active {
+  transform: translateY(0);
 }

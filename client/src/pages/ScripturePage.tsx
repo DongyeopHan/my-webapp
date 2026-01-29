@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './ScripturePage.css';
 import { scriptureAPI } from '../services/api';
 import type { User } from '../types/user';
@@ -79,6 +79,9 @@ const BIBLE_BOOKS: Book[] = [
   { name: '요한계시록', chapters: 22 },
 ];
 
+const OLD_TESTAMENT = BIBLE_BOOKS.slice(0, 39); // 구약 39권
+const NEW_TESTAMENT = BIBLE_BOOKS.slice(39); // 신약 27권
+
 type ScripturePageProps = {
   user: User;
 };
@@ -89,6 +92,15 @@ export function ScripturePage({ user }: ScripturePageProps) {
     {},
   );
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'old' | 'new'>('old');
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    message: string;
+  }>({ isOpen: false, message: '' });
+
+  // Debounce를 위한 ref
+  const pendingChangesRef = useRef<Record<string, Set<number>>>({});
+  const saveTimeoutRef = useRef<number | null>(null);
 
   // 서버에서 진행상황 불러오기
   useEffect(() => {
@@ -105,7 +117,10 @@ export function ScripturePage({ user }: ScripturePageProps) {
         setReadChapters(restored);
       } catch (error) {
         console.error('진행상황 불러오기 실패:', error);
-        alert('진행상황을 불러오는데 실패했습니다');
+        setErrorModal({
+          isOpen: true,
+          message: '진행상황을 불러오는데 실패했습니다',
+        });
       } finally {
         setLoading(false);
       }
@@ -115,17 +130,85 @@ export function ScripturePage({ user }: ScripturePageProps) {
   }, [user.userId]);
 
   // 서버에 진행상황 저장
-  const saveProgress = async (bookName: string, chapters: Set<number>) => {
-    try {
-      await scriptureAPI.saveProgress(
-        user.userId,
-        bookName,
-        Array.from(chapters),
-      );
-    } catch (error) {
-      console.error('진행상황 저장 실패:', error);
-      alert('진행상황 저장에 실패했습니다');
+  const saveProgress = useCallback(
+    async (bookName: string, chapters: Set<number>) => {
+      try {
+        await scriptureAPI.saveProgress(
+          user.userId,
+          bookName,
+          Array.from(chapters),
+        );
+      } catch (error) {
+        console.error('진행상황 저장 실패:', error);
+        setErrorModal({
+          isOpen: true,
+          message: '진행상황 저장에 실패했습니다',
+        });
+      }
+    },
+    [user.userId],
+  );
+
+  // 대기 중인 변경사항을 즉시 저장
+  const flushPendingChanges = useCallback(async () => {
+    if (Object.keys(pendingChangesRef.current).length === 0) return;
+
+    const changesSnapshot = { ...pendingChangesRef.current };
+    pendingChangesRef.current = {};
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
     }
+
+    // 모든 책의 변경사항을 동시에 저장
+    const savePromises = Object.entries(changesSnapshot).map(
+      ([bookName, chapters]) => saveProgress(bookName, chapters),
+    );
+
+    await Promise.all(savePromises);
+  }, [saveProgress]);
+
+  // 페이지 이탈 시 저장
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushPendingChanges();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        flushPendingChanges();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 컴포넌트 unmount 시에도 저장
+    return () => {
+      flushPendingChanges();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [flushPendingChanges]);
+
+  // Debounced save (500ms)
+  const debouncedSave = (bookName: string, chapters: Set<number>) => {
+    // pending changes에 저장
+    pendingChangesRef.current[bookName] = chapters;
+
+    // 기존 타이머 취소
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // 500ms 후 저장
+    saveTimeoutRef.current = setTimeout(() => {
+      flushPendingChanges();
+    }, 500);
   };
 
   const toggleChapter = (bookName: string, chapter: number) => {
@@ -144,8 +227,8 @@ export function ScripturePage({ user }: ScripturePageProps) {
 
       newProgress[bookName] = bookSet;
 
-      // 서버에 저장
-      saveProgress(bookName, bookSet);
+      // Debounced 저장
+      debouncedSave(bookName, bookSet);
 
       return newProgress;
     });
@@ -157,17 +240,15 @@ export function ScripturePage({ user }: ScripturePageProps) {
 
   const selectedBookData = BIBLE_BOOKS.find((b) => b.name === selectedBook);
 
-  const getTotalProgress = (): number => {
-    const totalChapters = BIBLE_BOOKS.reduce(
-      (sum, book) => sum + book.chapters,
-      0,
-    );
-    const readTotal = Object.values(readChapters).reduce(
-      (sum, set) => sum + set.size,
-      0,
-    );
-    return Math.round((readTotal / totalChapters) * 100);
+  const getTestamentProgress = (books: Book[]): number => {
+    const totalChapters = books.reduce((sum, book) => sum + book.chapters, 0);
+    const readTotal = books.reduce((sum, book) => {
+      return sum + (readChapters[book.name]?.size || 0);
+    }, 0);
+    return parseFloat(((readTotal / totalChapters) * 100).toFixed(1));
   };
+
+  const currentBooks = activeTab === 'old' ? OLD_TESTAMENT : NEW_TESTAMENT;
 
   if (loading) {
     return (
@@ -183,18 +264,42 @@ export function ScripturePage({ user }: ScripturePageProps) {
         <>
           <div className="scripture-header">
             <h2 className="scripture-title">성경통독</h2>
-            <span className="total-progress">{getTotalProgress()}%</span>
           </div>
+
+          <div className="testament-tabs">
+            <button
+              className={`tab-button ${activeTab === 'old' ? 'active' : ''}`}
+              onClick={() => setActiveTab('old')}
+            >
+              <span className="tab-name">구약</span>
+              <span className="tab-progress">
+                {getTestamentProgress(OLD_TESTAMENT)}%
+              </span>
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'new' ? 'active' : ''}`}
+              onClick={() => setActiveTab('new')}
+            >
+              <span className="tab-name">신약</span>
+              <span className="tab-progress">
+                {getTestamentProgress(NEW_TESTAMENT)}%
+              </span>
+            </button>
+          </div>
+
           <div className="scripture-book-list">
-            {BIBLE_BOOKS.map((book) => {
+            {currentBooks.map((book) => {
               const readCount = getReadCount(book.name);
               const totalChapters = book.chapters;
-              const progress = Math.round((readCount / totalChapters) * 100);
+              const progress = parseFloat(
+                ((readCount / totalChapters) * 100).toFixed(1),
+              );
+              const isCompleted = progress === 100;
 
               return (
                 <button
                   key={book.name}
-                  className="book-button"
+                  className={`book-button ${isCompleted ? 'completed' : ''}`}
                   onClick={() => setSelectedBook(book.name)}
                 >
                   <span className="book-name">{book.name}</span>
@@ -239,6 +344,28 @@ export function ScripturePage({ user }: ScripturePageProps) {
               })}
           </div>
         </>
+      )}
+
+      {/* 에러 모달 */}
+      {errorModal.isOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setErrorModal({ isOpen: false, message: '' })}
+        >
+          <div
+            className="modal-content error-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>알림</h3>
+            <p>{errorModal.message}</p>
+            <button
+              className="modal-button"
+              onClick={() => setErrorModal({ isOpen: false, message: '' })}
+            >
+              확인
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
