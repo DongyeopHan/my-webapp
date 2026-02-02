@@ -58,7 +58,7 @@ function App() {
       case 'todo':
         return <TodoListPage user={user!} />;
       case 'inbody':
-        return <p className="app-main-placeholder">준비 중입니다...</p>;
+        return <p className="app-main-placeholder">준비 중...</p>;
       default:
         return <p className="app-main-placeholder">메뉴를 선택해주세요</p>;
     }

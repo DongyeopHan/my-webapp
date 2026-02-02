@@ -7,16 +7,13 @@ import { registerSW } from 'virtual:pwa-register';
 
 function Root() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateSW, setUpdateSW] = useState<(() => void) | null>(null);
 
-  // PWA 자동 업데이트 설정
+  // PWA 업데이트 설정
   registerSW({
     immediate: true,
     onNeedRefresh() {
       setShowUpdateModal(true);
-      // 2초 후 자동으로 페이지 새로고침
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
     },
     onOfflineReady() {
       console.log('앱을 오프라인에서 사용할 수 있습니다.');
@@ -33,12 +30,30 @@ function Root() {
         );
       }
     },
+    onRegistered(r) {
+      if (r) {
+        setUpdateSW(() => () => {
+          r.update().then(() => {
+            window.location.reload();
+          });
+        });
+      }
+    },
   });
 
   return (
     <StrictMode>
       <App />
-      <UpdateModal isOpen={showUpdateModal} />
+      <UpdateModal
+        isOpen={showUpdateModal}
+        onConfirm={() => {
+          if (updateSW) {
+            updateSW();
+          } else {
+            window.location.reload();
+          }
+        }}
+      />
     </StrictMode>
   );
 }

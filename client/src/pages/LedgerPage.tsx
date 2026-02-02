@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from './LedgerPage.module.css';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 type LedgerItem = {
   date: string;
@@ -44,7 +45,7 @@ const CATEGORIES = [
 ];
 
 const GOOGLE_SHEET_URL =
-  'https://script.google.com/macros/s/AKfycbzGH05EuEbAbjHhgxVwNntFDvGHmBBaedbWLyFt66HIk7qUYYRC5mbx84b0SxT5eVk/exec';
+  'https://script.google.com/macros/s/AKfycbyrlyNeeHFQEVT2XOZpjMtC-U0zQpd0LUd0Y6rad1dg4nw9uq4jRGriHKWui6zfKUhF/exec';
 
 const getToday = (): string => {
   const today = new Date();
@@ -67,18 +68,11 @@ const getCurrentMonth = (): string => {
   return `${year}-${month}`;
 };
 
-const getMonthOptions = (): string[] => {
-  const options: string[] = [];
-  const today = new Date();
-
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    options.push(`${year}-${month}`);
-  }
-
-  return options;
+const convertSheetNameToMonth = (sheetName: string): string => {
+  // "26.02" -> "2026-02"
+  const [yy, mm] = sheetName.split('.');
+  const year = parseInt(yy) + 2000;
+  return `${year}-${mm}`;
 };
 
 const formatMonthDisplay = (month: string): string => {
@@ -96,8 +90,10 @@ const formatDateDisplay = (dateStr: string): string => {
 
 export function LedgerPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [monthOptions, setMonthOptions] = useState<string[]>([]);
   const [items, setItems] = useState<LedgerItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoadingMonths, setIsLoadingMonths] = useState(true);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LedgerItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState<LedgerFormData>({
@@ -107,30 +103,70 @@ export function LedgerPage() {
     description: '',
     paymentMethod: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [submitModal, setSubmitModal] = useState<{
     isOpen: boolean;
     message: string;
     isSuccess: boolean;
   }>({ isOpen: false, message: '', isSuccess: false });
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    item: LedgerItem | null;
+  }>({ isOpen: false, item: null });
+
+  const loadMonthOptions = async () => {
+    try {
+      setIsLoadingMonths(true);
+      const response = await fetch(`${GOOGLE_SHEET_URL}?action=getMonths`);
+      const result = await response.json();
+
+      if (result.result === 'success' && result.months) {
+        // "YY.MM" -> "YYYY-MM" 변환
+        const converted = result.months.map(convertSheetNameToMonth);
+        setMonthOptions(converted);
+
+        // 현재 월이 목록에 없으면 첫 번째 옵션으로 설정
+        if (!converted.includes(selectedMonth) && converted.length > 0) {
+          setSelectedMonth(converted[0]);
+        }
+      }
+    } catch (error) {
+      console.error('월 목록 불러오기 실패:', error);
+      // 실패 시 기본값 사용
+      setMonthOptions([getCurrentMonth()]);
+    } finally {
+      setIsLoadingMonths(false);
+    }
+  };
 
   const loadItems = async () => {
     try {
-      setLoading(true);
+      setIsLoadingItems(true);
+      setItems([]); // 이전 데이터 초기화
       const response = await fetch(
         `${GOOGLE_SHEET_URL}?month=${selectedMonth}`,
       );
       const result = await response.json();
 
       if (result.result === 'success') {
-        const sortedItems = (result.items || []).sort(
-          (a: LedgerItem, b: LedgerItem) => {
-            // 최신 날짜가 먼저 오도록 내림차순 정렬
-            const dateA = new Date(a.date).getTime();
-            const dateB = new Date(b.date).getTime();
-            return dateB - dateA;
-          },
-        );
+        // 유효한 데이터만 필터링 (NaN, null, undefined 제외)
+        const validItems = (result.items || []).filter((item: LedgerItem) => {
+          return (
+            item.date &&
+            item.category &&
+            item.amount &&
+            !isNaN(item.amount) &&
+            item.amount > 0
+          );
+        });
+
+        const sortedItems = validItems.sort((a: LedgerItem, b: LedgerItem) => {
+          // 최신 날짜가 먼저 오도록 내림차순 정렬
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA;
+        });
         setItems(sortedItems);
       } else {
         console.error('Failed to load items:', result.message);
@@ -138,14 +174,21 @@ export function LedgerPage() {
     } catch (error) {
       console.error('Error loading items:', error);
     } finally {
-      setLoading(false);
+      setIsLoadingItems(false);
     }
   };
 
   useEffect(() => {
-    loadItems();
+    loadMonthOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth]);
+  }, []);
+
+  useEffect(() => {
+    if (monthOptions.length > 0) {
+      loadItems();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, monthOptions]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -156,7 +199,7 @@ export function LedgerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsSaving(true);
     setSubmitModal({ isOpen: false, message: '', isSuccess: false });
 
     try {
@@ -206,7 +249,7 @@ export function LedgerPage() {
       });
       console.error(error);
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
@@ -245,6 +288,65 @@ export function LedgerPage() {
     });
   };
 
+  const handleDeleteClick = (item: LedgerItem) => {
+    setDeleteConfirm({ isOpen: true, item });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const item = deleteConfirm.item;
+    if (!item || !item.row) {
+      setDeleteConfirm({ isOpen: false, item: null });
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(GOOGLE_SHEET_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          row: item.row,
+          date: item.date,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.result === 'success') {
+        setSubmitModal({
+          isOpen: true,
+          message: '삭제되었습니다!',
+          isSuccess: true,
+        });
+        setDeleteConfirm({ isOpen: false, item: null });
+        setSelectedItem(null);
+        loadItems();
+      } else {
+        setSubmitModal({
+          isOpen: true,
+          message: `삭제에 실패했습니다: ${result.message || '알 수 없는 오류'}`,
+          isSuccess: false,
+        });
+      }
+    } catch (error) {
+      setSubmitModal({
+        isOpen: true,
+        message: '삭제에 실패했습니다.',
+        isSuccess: false,
+      });
+      console.error(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm({ isOpen: false, item: null });
+  };
+
   const isFormValid =
     formData.date &&
     formData.category &&
@@ -260,6 +362,14 @@ export function LedgerPage() {
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
+  if (isLoadingMonths) {
+    return (
+      <div className={styles.ledgerPage}>
+        <div className={styles.loading}>불러오는 중...</div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.ledgerPage}>
       <div className={styles.ledgerHeader}>
@@ -274,8 +384,9 @@ export function LedgerPage() {
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
           className={styles.monthSelect}
+          disabled={isLoadingItems}
         >
-          {getMonthOptions().map((month) => (
+          {monthOptions.map((month) => (
             <option key={month} value={month}>
               {formatMonthDisplay(month)}
             </option>
@@ -283,52 +394,44 @@ export function LedgerPage() {
         </select>
       </div>
 
-      {loading ? (
-        <div className={styles.loading}>불러오는 중...</div>
-      ) : (
-        <>
-          <div className={styles.summary}>
-            <span className={styles.summaryLabel}>총 지출:</span>
-            <span className={styles.summaryAmount}>
-              {totalAmount.toLocaleString()}원
-            </span>
-          </div>
+      <div className={styles.summary}>
+        <span className={styles.summaryLabel}>총 지출:</span>
+        <span className={styles.summaryAmount}>
+          {totalAmount.toLocaleString()}원
+        </span>
+      </div>
 
-          <div className={styles.itemList}>
-            {sortedItems.length === 0 ? (
-              <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
-            ) : (
-              sortedItems.map((item, index) => (
-                <div
-                  key={index}
-                  className={styles.item}
-                  onClick={() => handleItemClick(item)}
-                >
-                  <div className={styles.itemHeader}>
-                    <span className={styles.itemDate}>
-                      {formatDateDisplay(item.date)}
-                    </span>
-                    <span className={styles.itemAmount}>
-                      {item.amount.toLocaleString()}원
-                    </span>
-                  </div>
-                  <div className={styles.itemBody}>
-                    <span className={styles.itemCategory}>{item.category}</span>
-                    <span className={styles.itemPayment}>
-                      {item.paymentMethod}
-                    </span>
-                  </div>
-                  {item.description && (
-                    <div className={styles.itemDescription}>
-                      {item.description}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
+      <div className={styles.itemList}>
+        {isLoadingItems ? (
+          <div className={styles.itemListLoading}>불러오는 중...</div>
+        ) : sortedItems.length === 0 ? (
+          <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
+        ) : (
+          sortedItems.map((item, index) => (
+            <div
+              key={index}
+              className={styles.item}
+              onClick={() => handleItemClick(item)}
+            >
+              <div className={styles.itemHeader}>
+                <span className={styles.itemDate}>
+                  {formatDateDisplay(item.date)}
+                </span>
+                <span className={styles.itemAmount}>
+                  {item.amount.toLocaleString()}원
+                </span>
+              </div>
+              <div className={styles.itemBody}>
+                <span className={styles.itemCategory}>{item.category}</span>
+                <span className={styles.itemPayment}>{item.paymentMethod}</span>
+              </div>
+              {item.description && (
+                <div className={styles.itemDescription}>{item.description}</div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
 
       {/* 추가/상세 모달 */}
       <Modal
@@ -407,15 +510,30 @@ export function LedgerPage() {
             />
           </div>
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="large"
-            fullWidth
-            disabled={!isFormValid || isSubmitting}
-          >
-            {isSubmitting ? '저장 중...' : '저장하기'}
-          </Button>
+          <div className={styles.buttonGroup}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="large"
+              fullWidth
+              disabled={!isFormValid || isSaving || isDeleting}
+            >
+              {isSaving ? '저장 중...' : '저장하기'}
+            </Button>
+
+            {selectedItem && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="large"
+                fullWidth
+                onClick={() => handleDeleteClick(selectedItem)}
+                disabled={isSaving || isDeleting}
+              >
+                {isDeleting ? '삭제 중...' : '삭제하기'}
+              </Button>
+            )}
+          </div>
         </form>
       </Modal>
 
@@ -438,6 +556,17 @@ export function LedgerPage() {
           </p>
         </div>
       </Modal>
+
+      {/* 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="삭제 확인"
+        message="정말 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
     </div>
   );
 }

@@ -75,9 +75,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  color: #666;
-  font-size: 1rem;
+  height: 100%;
+  font-size: 1.2rem;
+  color: #6c757d;
 }
 
 .itemList {
@@ -85,13 +85,28 @@
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  height: 100%;
+}
+
+.itemListLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  font-size: 1rem;
+  color: #6c757d;
+  height: 100%;
 }
 
 .emptyMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  color: #999;
+  color: #6c757d;
   padding: 2rem;
   font-size: 0.95rem;
+  height: 100%;
 }
 
 .item {
@@ -247,6 +262,12 @@
   font-weight: 500;
   color: #dc3545;
   margin: 0;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
 
 /* 모바일 */
