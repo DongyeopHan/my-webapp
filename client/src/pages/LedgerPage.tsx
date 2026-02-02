@@ -394,12 +394,14 @@ export function LedgerPage() {
         </select>
       </div>
 
-      <div className={styles.summary}>
-        <span className={styles.summaryLabel}>총 지출:</span>
-        <span className={styles.summaryAmount}>
-          {totalAmount.toLocaleString()}원
-        </span>
-      </div>
+      {!isLoadingItems && (
+        <div className={styles.summary}>
+          <span className={styles.summaryLabel}>총 지출:</span>
+          <span className={styles.summaryAmount}>
+            {totalAmount.toLocaleString()}원
+          </span>
+        </div>
+      )}
 
       <div className={styles.itemList}>
         {isLoadingItems ? (
