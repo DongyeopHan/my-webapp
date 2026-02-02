@@ -36,8 +36,35 @@ export function TodoListPage({ user }: TodoListPageProps) {
   });
 
   useEffect(() => {
+    checkAndResetDailyTodos();
     loadTodos();
   }, [user.userId]);
+
+  // 자정이 지났는지 확인하고 완료된 Todo 리셋
+  const checkAndResetDailyTodos = async () => {
+    const LAST_VISIT_KEY = `lastVisit_${user.userId}`;
+    const today = new Date().toDateString();
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+
+    // 마지막 방문일과 오늘 날짜가 다르면 자정이 지난 것
+    if (lastVisit && lastVisit !== today) {
+      try {
+        // 완료된 Todo들을 가져와서 삭제
+        const data = await todoAPI.getTodos(user.userId);
+        const completedTodos = data.filter((todo: Todo) => todo.completed);
+
+        // 완료된 Todo들 삭제
+        for (const todo of completedTodos) {
+          await todoAPI.deleteTodo(todo._id);
+        }
+      } catch (err) {
+        console.error('자정 리셋 실패:', err);
+      }
+    }
+
+    // 오늘 날짜 저장
+    localStorage.setItem(LAST_VISIT_KEY, today);
+  };
 
   const parseTimeToMinutes = (timeString: string): number => {
     const match = timeString.match(/(오전|오후)\s*(\d+)시\s*(\d+)분/);

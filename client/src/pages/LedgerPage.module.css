@@ -4,28 +4,14 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .ledgerHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.backButton {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #ffb088;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-}
-
-.backButton:hover {
-  background-color: #ffe0d0;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .ledgerTitle {
@@ -35,7 +21,141 @@
   margin: 0;
 }
 
-.ledgerForm {
+.monthSelector {
+  margin-bottom: 16px;
+}
+
+.monthSelect {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 2px solid #ffe0d0;
+  border-radius: 10px;
+  background-color: white;
+  color: #5d4e37;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.monthSelect:hover {
+  border-color: #ffb088;
+}
+
+.monthSelect:focus {
+  outline: none;
+  border-color: #ffb088;
+  box-shadow: 0 0 0 3px rgba(255, 176, 136, 0.1);
+}
+
+.summary {
+  background: linear-gradient(135deg, #ffe0d0 0%, #fff9f5 100%);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.summaryLabel {
+  font-size: 14px;
+  color: #5d4e37;
+  font-weight: 600;
+}
+
+.summaryAmount {
+  font-size: 20px;
+  color: #ffb088;
+  font-weight: bold;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1rem;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+  font-size: 0.95rem;
+}
+
+.item {
+  background: white;
+  border: 2px solid #ffe0d0;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.item:hover {
+  border-color: #ffb088;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 176, 136, 0.2);
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.itemDate {
+  font-size: 13px;
+  color: #666;
+}
+
+.itemAmount {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffb088;
+}
+
+.itemBody {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemCategory {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5d4e37;
+  background: #fff9f5;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.itemPayment {
+  font-size: 13px;
+  color: #666;
+}
+
+.itemDescription {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.modalForm {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -51,10 +171,6 @@
   font-weight: 600;
   color: #5d4e37;
   font-size: 14px;
-}
-
-.submitButton {
-  margin-bottom: 16px;
 }
 
 .formGroup input,
@@ -114,21 +230,29 @@
   cursor: not-allowed;
 }
 
-.submitMessage {
+.modalContent {
   text-align: center;
-  font-size: 14px;
-  margin-top: 8px;
-  color: #333;
+  padding: 1rem 0;
+}
+
+.successMessage {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #28a745;
+  margin: 0;
+}
+
+.errorMessage {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #dc3545;
+  margin: 0;
 }
 
 /* 모바일 */
 @media (max-width: 480px) {
   .ledgerPage {
-    padding: 12px;
-  }
-
-  .ledgerHeader {
-    padding: 0.5rem 1rem 0rem 0rem;
+    padding: 16px;
   }
 
   .ledgerTitle {

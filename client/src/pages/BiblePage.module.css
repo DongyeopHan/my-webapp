@@ -15,7 +15,7 @@
 }
 
 .bibleHeader {
-  padding: 1rem 1rem 0.3rem 1rem;
+  padding: 1rem 1rem 16px 1rem;
   background-color: transparent;
   border-bottom: none;
   display: flex;
