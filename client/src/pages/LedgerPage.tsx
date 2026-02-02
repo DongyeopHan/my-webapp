@@ -9,6 +9,7 @@ type LedgerItem = {
   amount: number;
   description: string;
   paymentMethod: string;
+  row?: number;
 };
 
 type LedgerFormData = {
@@ -43,11 +44,20 @@ const CATEGORIES = [
 ];
 
 const GOOGLE_SHEET_URL =
-  'https://script.google.com/macros/s/AKfycbwRCSIldJf5MjFqd6J04ykAOBxHD7Fd3Nx0x2JnASm5KHssRsRfShRszS71_yx2WUOy/exec';
+  'https://script.google.com/macros/s/AKfycbzGH05EuEbAbjHhgxVwNntFDvGHmBBaedbWLyFt66HIk7qUYYRC5mbx84b0SxT5eVk/exec';
 
 const getToday = (): string => {
   const today = new Date();
   return today.toISOString().split('T')[0];
+};
+
+const formatDateForInput = (dateStr: string): string => {
+  // 날짜를 YYYY-MM-DD 형식으로 변환
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const getCurrentMonth = (): string => {
@@ -150,12 +160,17 @@ export function LedgerPage() {
     setSubmitModal({ isOpen: false, message: '', isSuccess: false });
 
     try {
+      // selectedItem이 있고 row가 있으면 update, 없으면 insert
+      const payload = selectedItem?.row
+        ? { ...formData, action: 'update', row: selectedItem.row }
+        : formData;
+
       const response = await fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -198,7 +213,7 @@ export function LedgerPage() {
   const handleItemClick = (item: LedgerItem) => {
     setSelectedItem(item);
     setFormData({
-      date: item.date,
+      date: formatDateForInput(item.date),
       category: item.category,
       amount: String(item.amount),
       description: item.description,
