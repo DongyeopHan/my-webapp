@@ -12,7 +12,7 @@ export default defineConfig({
         enabled: false,
       },
       workbox: {
-        skipWaiting: false,
+        skipWaiting: true,
         clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [

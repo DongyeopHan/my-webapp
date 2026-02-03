@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+import { MONGODB_API_BASE_URL } from '../config/api';
+
+const API_URL = MONGODB_API_BASE_URL;
 
 export const authAPI = {
   login: async (username: string, password: string) => {

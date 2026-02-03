@@ -29,9 +29,11 @@ export function ConfirmModal({
         <h3 className={styles.confirmTitle}>{title}</h3>
         <p className={styles.confirmMessage}>{message}</p>
         <div className={styles.confirmButtons}>
-          <button className={styles.cancelButton} onClick={onClose}>
-            {cancelText}
-          </button>
+          {cancelText && (
+            <button className={styles.cancelButton} onClick={onClose}>
+              {cancelText}
+            </button>
+          )}
           <button
             className={`${styles.confirmButton} ${variant === 'primary' ? styles.primary : ''}`}
             onClick={() => {

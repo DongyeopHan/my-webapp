@@ -5,14 +5,17 @@ import App from './App.tsx';
 import { UpdateModal } from './components/UpdateModal.tsx';
 import { registerSW } from 'virtual:pwa-register';
 
-function Root() {
+export function Root() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateSW, setUpdateSW] = useState<(() => void) | null>(null);
+  const [updateSW, setUpdateSW] = useState<
+    ((reloadPage?: boolean) => Promise<void>) | null
+  >(null);
 
   // PWA 업데이트 설정
   registerSW({
     immediate: true,
     onNeedRefresh() {
+      console.log('새 버전 감지: 모달 표시');
       setShowUpdateModal(true);
     },
     onOfflineReady() {
@@ -20,22 +23,27 @@ function Root() {
     },
     onRegisteredSW(swUrl, r) {
       console.log('Service Worker 등록됨:', swUrl);
-      // 주기적으로 업데이트 확인 (30분마다)
+      // 주기적으로 업데이트 확인 (5분마다)
       if (r) {
         setInterval(
           () => {
             r.update();
           },
-          30 * 60 * 1000,
+          3 * 60 * 1000,
         );
       }
     },
     onRegistered(r) {
       if (r) {
-        setUpdateSW(() => () => {
-          r.update().then(() => {
+        setUpdateSW(() => async (reloadPage?: boolean) => {
+          if (r.waiting) {
+            // 대기 중인 SW에 skipWaiting 메시지 전송
+            r.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+          await r.update();
+          if (reloadPage) {
             window.location.reload();
-          });
+          }
         });
       }
     },
@@ -46,9 +54,14 @@ function Root() {
       <App />
       <UpdateModal
         isOpen={showUpdateModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (updateSW) {
-            updateSW();
+            await updateSW(true);
+            // Capacitor 앱인 경우 종료 시도
+            if ('Capacitor' in window) {
+              const { App } = await import('@capacitor/app');
+              App.exitApp();
+            }
           } else {
             window.location.reload();
           }

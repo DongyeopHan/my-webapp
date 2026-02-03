@@ -3,6 +3,16 @@ import styles from './LedgerPage.module.css';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { ConfirmModal } from '../components/ConfirmModal';
+import {
+  getToday,
+  formatDateForInput,
+  getCurrentMonth,
+  convertSheetNameToMonth,
+  formatMonthDisplay,
+  formatDateDisplay,
+  sortByDateDesc,
+} from '../utils/dateUtils';
+import { GOOGLE_SHEET_URL } from '../config/api';
 
 type LedgerItem = {
   date: string;
@@ -43,50 +53,6 @@ const CATEGORIES = [
   '지인경조사',
   '여행',
 ];
-
-const GOOGLE_SHEET_URL =
-  'https://script.google.com/macros/s/AKfycbyrlyNeeHFQEVT2XOZpjMtC-U0zQpd0LUd0Y6rad1dg4nw9uq4jRGriHKWui6zfKUhF/exec';
-
-const getToday = (): string => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
-
-const formatDateForInput = (dateStr: string): string => {
-  // 날짜를 YYYY-MM-DD 형식으로 변환
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getCurrentMonth = (): string => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-};
-
-const convertSheetNameToMonth = (sheetName: string): string => {
-  // "26.02" -> "2026-02"
-  const [yy, mm] = sheetName.split('.');
-  const year = parseInt(yy) + 2000;
-  return `${year}-${mm}`;
-};
-
-const formatMonthDisplay = (month: string): string => {
-  const [year, m] = month.split('-');
-  return `${year}년 ${parseInt(m)}월`;
-};
-
-const formatDateDisplay = (dateStr: string): string => {
-  // "2026-01-31" 형식을 "1월 31일" 형식으로 변환
-  const date = new Date(dateStr);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${month}월 ${day}일`;
-};
 
 export function LedgerPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -161,12 +127,7 @@ export function LedgerPage() {
           );
         });
 
-        const sortedItems = validItems.sort((a: LedgerItem, b: LedgerItem) => {
-          // 최신 날짜가 먼저 오도록 내림차순 정렬
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return dateB - dateA;
-        });
+        const sortedItems = sortByDateDesc<LedgerItem>(validItems);
         setItems(sortedItems);
       } else {
         console.error('Failed to load items:', result.message);
@@ -354,11 +315,7 @@ export function LedgerPage() {
     formData.paymentMethod;
 
   // 화면에 표시할 때 날짜 내림차순으로 정렬 (최신 날짜가 위로)
-  const sortedItems = [...items].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return dateB - dateA; // 내림차순
-  });
+  const sortedItems = sortByDateDesc<LedgerItem>(items);
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 

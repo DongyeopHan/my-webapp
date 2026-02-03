@@ -41,6 +41,10 @@
   border-top: 2px solid #ffe0d0;
   display: flex;
   gap: 0.75rem;
+  justify-content: center;
+}
+
+.confirmButtons:has(.cancelButton) {
   justify-content: flex-end;
 }
 

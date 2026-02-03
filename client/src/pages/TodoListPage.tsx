@@ -4,6 +4,11 @@ import { todoAPI } from '../services/api';
 import { Button } from '../components/Button';
 import type { User } from '../types/user';
 import type { Todo } from '../types/todo';
+import {
+  sortByTimeAsc,
+  parseTimeString,
+  formatTimeString,
+} from '../utils/timeUtils';
 
 type TodoListPageProps = {
   user: User;
@@ -66,37 +71,11 @@ export function TodoListPage({ user }: TodoListPageProps) {
     localStorage.setItem(LAST_VISIT_KEY, today);
   };
 
-  const parseTimeToMinutes = (timeString: string): number => {
-    const match = timeString.match(/(오전|오후)\s*(\d+)시\s*(\d+)분/);
-    if (!match) return 0;
-
-    const period = match[1];
-    const hour = parseInt(match[2]);
-    const minute = parseInt(match[3]);
-
-    let totalMinutes = hour * 60 + minute;
-    if (period === '오후' && hour !== 12) {
-      totalMinutes += 12 * 60;
-    } else if (period === '오전' && hour === 12) {
-      totalMinutes = minute; // 오전 12시는 0시
-    }
-
-    return totalMinutes;
-  };
-
-  const sortTodosByTime = (todos: Todo[]): Todo[] => {
-    return [...todos].sort((a, b) => {
-      const timeA = parseTimeToMinutes(a.time);
-      const timeB = parseTimeToMinutes(b.time);
-      return timeA - timeB;
-    });
-  };
-
   const loadTodos = async () => {
     try {
       setLoading(true);
       const data = await todoAPI.getTodos(user.userId);
-      const sortedData = sortTodosByTime(data);
+      const sortedData = sortByTimeAsc<Todo>(data);
       setTodos(sortedData);
       setError('');
     } catch (err) {
@@ -113,7 +92,11 @@ export function TodoListPage({ user }: TodoListPageProps) {
       return;
     }
 
-    const timeString = `${newTodo.period} ${newTodo.hour}시 ${newTodo.minute}분`;
+    const timeString = formatTimeString(
+      newTodo.period,
+      newTodo.hour,
+      newTodo.minute,
+    );
 
     try {
       await todoAPI.createTodo(
@@ -172,12 +155,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
 
   const handleEditClick = () => {
     if (selectedTodo) {
-      const timeParts = selectedTodo.time.match(
-        /(오전|오후)\s*(\d+)시\s*(\d+)분/,
-      );
-      const period = timeParts?.[1] || '오전';
-      const hour = timeParts?.[2] || '9';
-      const minute = timeParts?.[3] || '00';
+      const { period, hour, minute } = parseTimeString(selectedTodo.time);
 
       setEditTodo({
         title: selectedTodo.title,
@@ -212,7 +190,11 @@ export function TodoListPage({ user }: TodoListPageProps) {
       return;
     }
 
-    const timeString = `${editTodo.period} ${editTodo.hour}시 ${editTodo.minute}분`;
+    const timeString = formatTimeString(
+      editTodo.period,
+      editTodo.hour,
+      editTodo.minute,
+    );
 
     try {
       await todoAPI.updateTodo(
