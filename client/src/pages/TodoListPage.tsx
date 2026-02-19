@@ -14,6 +14,43 @@ type TodoListPageProps = {
   user: User;
 };
 
+type CachedTodos = {
+  timestamp: number;
+  todos: Todo[];
+};
+
+const TODOS_CACHE_PREFIX = 'todos_cache_';
+const TODOS_CACHE_TTL_MS = 1000 * 60 * 5;
+
+const getTodosCacheKey = (userId: string) => `${TODOS_CACHE_PREFIX}${userId}`;
+
+const readTodosCache = (userId: string): Todo[] | null => {
+  try {
+    const raw = localStorage.getItem(getTodosCacheKey(userId));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as CachedTodos;
+    if (!parsed?.timestamp || !Array.isArray(parsed.todos)) {
+      return null;
+    }
+    if (Date.now() - parsed.timestamp > TODOS_CACHE_TTL_MS) {
+      return null;
+    }
+    return parsed.todos;
+  } catch {
+    return null;
+  }
+};
+
+const writeTodosCache = (userId: string, todos: Todo[]) => {
+  const payload: CachedTodos = {
+    timestamp: Date.now(),
+    todos,
+  };
+  localStorage.setItem(getTodosCacheKey(userId), JSON.stringify(payload));
+};
+
 export function TodoListPage({ user }: TodoListPageProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,10 +110,15 @@ export function TodoListPage({ user }: TodoListPageProps) {
 
   const loadTodos = async () => {
     try {
+      const cached = readTodosCache(user.userId);
+      if (cached) {
+        setTodos(cached);
+      }
       setLoading(true);
       const data = await todoAPI.getTodos(user.userId);
       const sortedData = sortByTimeAsc<Todo>(data);
       setTodos(sortedData);
+      writeTodosCache(user.userId, sortedData);
       setError('');
     } catch (err) {
       setError('Todo 목록을 불러오는데 실패했습니다');
@@ -212,10 +254,6 @@ export function TodoListPage({ user }: TodoListPageProps) {
       console.error(err);
     }
   };
-
-  if (loading) {
-    return <div className={styles.todoLoading}>불러오는 중...</div>;
-  }
 
   const completedCount = todos.filter((todo) => todo.completed).length;
   const totalCount = todos.length;
@@ -543,6 +581,16 @@ export function TodoListPage({ user }: TodoListPageProps) {
                 삭제
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className={styles.loadingOverlay} aria-hidden="true">
+          <div className={styles.loadingDots}>
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
           </div>
         </div>
       )}

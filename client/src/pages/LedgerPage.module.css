@@ -5,6 +5,7 @@
   flex-direction: column;
   padding: 16px;
   overflow-y: auto;
+  position: relative;
 }
 
 .ledgerHeader {
@@ -19,6 +20,14 @@
   font-weight: bold;
   color: #333;
   margin: 0;
+}
+
+.ledgerMain {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .monthSelector {
@@ -65,36 +74,64 @@
   font-weight: 600;
 }
 
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(1px);
+}
+
+.loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffb088;
+  animation: dotBounce 1s infinite ease-in-out;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.6;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .summaryAmount {
   font-size: 20px;
   color: #ffb088;
   font-weight: bold;
 }
 
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 1.2rem;
-  color: #6c757d;
-}
-
 .itemList {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  height: 100%;
-}
-
-.itemListLoading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 0;
-  font-size: 1rem;
-  color: #6c757d;
   height: 100%;
 }
 

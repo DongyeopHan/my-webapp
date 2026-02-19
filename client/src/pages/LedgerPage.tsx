@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from './LedgerPage.module.css';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
@@ -31,6 +31,11 @@ type LedgerFormData = {
   paymentMethod: string;
 };
 
+type CachedLedgerItems = {
+  timestamp: number;
+  items: LedgerItem[];
+};
+
 const CATEGORIES = [
   '대출',
   '관리비',
@@ -54,12 +59,52 @@ const CATEGORIES = [
   '여행',
 ];
 
+const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
+const ITEMS_CACHE_TTL_MS = 1000 * 60 * 5;
+
+const getItemsCacheKey = (month: string) => `${ITEMS_CACHE_PREFIX}${month}`;
+
+const readItemsCache = (month: string): LedgerItem[] | null => {
+  try {
+    const raw = localStorage.getItem(getItemsCacheKey(month));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as CachedLedgerItems;
+    if (!parsed?.timestamp || !Array.isArray(parsed.items)) {
+      return null;
+    }
+    if (Date.now() - parsed.timestamp > ITEMS_CACHE_TTL_MS) {
+      return null;
+    }
+    return parsed.items;
+  } catch {
+    return null;
+  }
+};
+
+const writeItemsCache = (month: string, items: LedgerItem[]) => {
+  const payload: CachedLedgerItems = {
+    timestamp: Date.now(),
+    items,
+  };
+  localStorage.setItem(getItemsCacheKey(month), JSON.stringify(payload));
+};
+
+const invalidateItemsCache = (month: string) => {
+  localStorage.removeItem(getItemsCacheKey(month));
+};
+
 export function LedgerPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
-  const [monthOptions, setMonthOptions] = useState<string[]>([]);
+  const [monthOptions, setMonthOptions] = useState<string[]>(() => [
+    getCurrentMonth(),
+  ]);
   const [items, setItems] = useState<LedgerItem[]>([]);
   const [isLoadingMonths, setIsLoadingMonths] = useState(true);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [isBlockingLoad, setIsBlockingLoad] = useState(true);
+  const [isMonthOptionsLoaded, setIsMonthOptionsLoaded] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LedgerItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState<LedgerFormData>({
@@ -80,9 +125,13 @@ export function LedgerPage() {
     isOpen: boolean;
     item: LedgerItem | null;
   }>({ isOpen: false, item: null });
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const lastLoadedMonthRef = useRef<string | null>(null);
 
-  const loadMonthOptions = async () => {
+  const loadMonthOptions = useCallback(async () => {
     try {
+      setIsBlockingLoad(true);
       setIsLoadingMonths(true);
       const response = await fetch(`${GOOGLE_SHEET_URL}?action=getMonths`);
       const result = await response.json();
@@ -93,8 +142,10 @@ export function LedgerPage() {
         setMonthOptions(converted);
 
         // 현재 월이 목록에 없으면 첫 번째 옵션으로 설정
-        if (!converted.includes(selectedMonth) && converted.length > 0) {
-          setSelectedMonth(converted[0]);
+        if (converted.length > 0) {
+          setSelectedMonth((prev) =>
+            converted.includes(prev) ? prev : converted[0],
+          );
         }
       }
     } catch (error) {
@@ -103,17 +154,34 @@ export function LedgerPage() {
       setMonthOptions([getCurrentMonth()]);
     } finally {
       setIsLoadingMonths(false);
+      setIsMonthOptionsLoaded(true);
     }
-  };
+  }, []);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async (month: string) => {
+    let requestId = 0;
     try {
+      const cached = readItemsCache(month);
+      if (cached) {
+        setItems(cached);
+      }
+
+      loadAbortRef.current?.abort();
+      const controller = new AbortController();
+      loadAbortRef.current = controller;
+      requestId = loadRequestIdRef.current + 1;
+      loadRequestIdRef.current = requestId;
+
+      setIsBlockingLoad(true);
       setIsLoadingItems(true);
-      setItems([]); // 이전 데이터 초기화
-      const response = await fetch(
-        `${GOOGLE_SHEET_URL}?month=${selectedMonth}`,
-      );
+      const response = await fetch(`${GOOGLE_SHEET_URL}?month=${month}`, {
+        signal: controller.signal,
+      });
       const result = await response.json();
+
+      if (controller.signal.aborted || requestId !== loadRequestIdRef.current) {
+        return;
+      }
 
       if (result.result === 'success') {
         // 유효한 데이터만 필터링 (NaN, null, undefined 제외)
@@ -127,29 +195,40 @@ export function LedgerPage() {
           );
         });
 
-        const sortedItems = sortByDateDesc<LedgerItem>(validItems);
-        setItems(sortedItems);
+        setItems(validItems);
+        writeItemsCache(month, validItems);
       } else {
         console.error('Failed to load items:', result.message);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       console.error('Error loading items:', error);
     } finally {
-      setIsLoadingItems(false);
+      if (requestId === loadRequestIdRef.current) {
+        setIsLoadingItems(false);
+        setIsBlockingLoad(false);
+      }
     }
-  };
-
-  useEffect(() => {
-    loadMonthOptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (monthOptions.length > 0) {
-      loadItems();
+    loadMonthOptions();
+  }, [loadMonthOptions]);
+
+  useEffect(() => {
+    if (!isMonthOptionsLoaded) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, monthOptions]);
+    if (monthOptions.length > 0) {
+      if (lastLoadedMonthRef.current === selectedMonth) {
+        return;
+      }
+      lastLoadedMonthRef.current = selectedMonth;
+      loadItems(selectedMonth);
+    }
+  }, [selectedMonth, monthOptions, loadItems, isMonthOptionsLoaded]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -194,7 +273,8 @@ export function LedgerPage() {
         });
         setShowAddModal(false);
         setSelectedItem(null);
-        loadItems(); // 목록 새로고침
+        invalidateItemsCache(selectedMonth);
+        loadItems(selectedMonth); // 목록 새로고침
       } else {
         setSubmitModal({
           isOpen: true,
@@ -284,7 +364,8 @@ export function LedgerPage() {
         });
         setDeleteConfirm({ isOpen: false, item: null });
         setSelectedItem(null);
-        loadItems();
+        invalidateItemsCache(selectedMonth);
+        loadItems(selectedMonth);
       } else {
         setSubmitModal({
           isOpen: true,
@@ -315,17 +396,12 @@ export function LedgerPage() {
     formData.paymentMethod;
 
   // 화면에 표시할 때 날짜 내림차순으로 정렬 (최신 날짜가 위로)
-  const sortedItems = sortByDateDesc<LedgerItem>(items);
+  const sortedItems = useMemo(() => sortByDateDesc<LedgerItem>(items), [items]);
 
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-
-  if (isLoadingMonths) {
-    return (
-      <div className={styles.ledgerPage}>
-        <div className={styles.loading}>불러오는 중...</div>
-      </div>
-    );
-  }
+  const totalAmount = useMemo(
+    () => items.reduce((sum, item) => sum + item.amount, 0),
+    [items],
+  );
 
   return (
     <div className={styles.ledgerPage}>
@@ -336,61 +412,73 @@ export function LedgerPage() {
         </Button>
       </div>
 
-      <div className={styles.monthSelector}>
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className={styles.monthSelect}
-          disabled={isLoadingItems}
-        >
-          {monthOptions.map((month) => (
-            <option key={month} value={month}>
-              {formatMonthDisplay(month)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className={styles.ledgerMain}>
+        <div className={styles.monthSelector}>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className={styles.monthSelect}
+            disabled={isLoadingItems || isLoadingMonths}
+          >
+            {monthOptions.map((month) => (
+              <option key={month} value={month}>
+                {formatMonthDisplay(month)}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {!isLoadingItems && (
         <div className={styles.summary}>
           <span className={styles.summaryLabel}>총 지출:</span>
           <span className={styles.summaryAmount}>
             {totalAmount.toLocaleString()}원
           </span>
         </div>
-      )}
 
-      <div className={styles.itemList}>
-        {isLoadingItems ? (
-          <div className={styles.itemListLoading}>불러오는 중...</div>
-        ) : sortedItems.length === 0 ? (
-          <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
-        ) : (
-          sortedItems.map((item, index) => (
-            <div
-              key={index}
-              className={styles.item}
-              onClick={() => handleItemClick(item)}
-            >
-              <div className={styles.itemHeader}>
-                <span className={styles.itemDate}>
-                  {formatDateDisplay(item.date)}
-                </span>
-                <span className={styles.itemAmount}>
-                  {item.amount.toLocaleString()}원
-                </span>
+        <div className={styles.itemList}>
+          {sortedItems.length === 0 ? (
+            <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
+          ) : (
+            sortedItems.map((item, index) => (
+              <div
+                key={index}
+                className={styles.item}
+                onClick={() => handleItemClick(item)}
+              >
+                <div className={styles.itemHeader}>
+                  <span className={styles.itemDate}>
+                    {formatDateDisplay(item.date)}
+                  </span>
+                  <span className={styles.itemAmount}>
+                    {item.amount.toLocaleString()}원
+                  </span>
+                </div>
+                <div className={styles.itemBody}>
+                  <span className={styles.itemCategory}>{item.category}</span>
+                  <span className={styles.itemPayment}>
+                    {item.paymentMethod}
+                  </span>
+                </div>
+                {item.description && (
+                  <div className={styles.itemDescription}>
+                    {item.description}
+                  </div>
+                )}
               </div>
-              <div className={styles.itemBody}>
-                <span className={styles.itemCategory}>{item.category}</span>
-                <span className={styles.itemPayment}>{item.paymentMethod}</span>
-              </div>
-              {item.description && (
-                <div className={styles.itemDescription}>{item.description}</div>
-              )}
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
+
+      {isBlockingLoad && (
+        <div className={styles.loadingOverlay} aria-hidden="true">
+          <div className={styles.loadingDots}>
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+          </div>
+        </div>
+      )}
 
       {/* 추가/상세 모달 */}
       <Modal

@@ -14,6 +14,41 @@ type BiblePageProps = {
   user: User;
 };
 
+type CachedBibleProgress = {
+  timestamp: number;
+  progress: Record<string, number[]>;
+};
+
+const PROGRESS_CACHE_PREFIX = 'bible_progress_cache_';
+const PROGRESS_CACHE_TTL_MS = 1000 * 60 * 5;
+
+const getProgressCacheKey = (userId: string) =>
+  `${PROGRESS_CACHE_PREFIX}${userId}`;
+
+const readProgressCache = (userId: string) => {
+  try {
+    const raw = localStorage.getItem(getProgressCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedBibleProgress;
+    if (!parsed?.timestamp || !parsed.progress) return null;
+    if (Date.now() - parsed.timestamp > PROGRESS_CACHE_TTL_MS) return null;
+    return parsed.progress;
+  } catch {
+    return null;
+  }
+};
+
+const writeProgressCache = (
+  userId: string,
+  progress: Record<string, number[]>,
+) => {
+  const payload: CachedBibleProgress = {
+    timestamp: Date.now(),
+    progress,
+  };
+  localStorage.setItem(getProgressCacheKey(userId), JSON.stringify(payload));
+};
+
 export function BiblePage({ user }: BiblePageProps) {
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [readChapters, setReadChapters] = useState<Record<string, Set<number>>>(
@@ -34,6 +69,15 @@ export function BiblePage({ user }: BiblePageProps) {
   useEffect(() => {
     const loadProgress = async () => {
       try {
+        const cached = readProgressCache(user.userId);
+        if (cached) {
+          const restoredFromCache: Record<string, Set<number>> = {};
+          Object.keys(cached).forEach((book) => {
+            restoredFromCache[book] = new Set(cached[book]);
+          });
+          setReadChapters(restoredFromCache);
+        }
+
         setLoading(true);
         const progress = await bibleAPI.getProgress(user.userId);
 
@@ -43,6 +87,7 @@ export function BiblePage({ user }: BiblePageProps) {
           restored[book] = new Set(progress[book]);
         });
         setReadChapters(restored);
+        writeProgressCache(user.userId, progress);
       } catch (error) {
         console.error('진행상황 불러오기 실패:', error);
         setErrorModal({
@@ -178,14 +223,6 @@ export function BiblePage({ user }: BiblePageProps) {
 
   const currentBooks = activeTab === 'old' ? OLD_TESTAMENT : NEW_TESTAMENT;
 
-  if (loading) {
-    return (
-      <div className={styles.biblePage}>
-        <div className={styles.bibleLoading}>불러오는 중...</div>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.biblePage}>
       {!selectedBook ? (
@@ -285,6 +322,16 @@ export function BiblePage({ user }: BiblePageProps) {
         cancelText=""
         variant="primary"
       />
+
+      {loading && (
+        <div className={styles.loadingOverlay} aria-hidden="true">
+          <div className={styles.loadingDots}>
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
