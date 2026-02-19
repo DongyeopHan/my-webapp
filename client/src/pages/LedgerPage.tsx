@@ -13,11 +13,13 @@ import {
   sortByDateDesc,
 } from '../utils/dateUtils';
 import { GOOGLE_SHEET_URL } from '../config/api';
+import type { User } from '../types/user';
 
 type LedgerItem = {
   date: string;
   category: string;
   amount: number;
+  writer: string;
   description: string;
   paymentMethod: string;
   row?: number;
@@ -27,6 +29,7 @@ type LedgerFormData = {
   date: string;
   category: string;
   amount: string;
+  writer: string;
   description: string;
   paymentMethod: string;
 };
@@ -95,7 +98,11 @@ const invalidateItemsCache = (month: string) => {
   localStorage.removeItem(getItemsCacheKey(month));
 };
 
-export function LedgerPage() {
+type LedgerPageProps = {
+  user: User;
+};
+
+export function LedgerPage({ user }: LedgerPageProps) {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [monthOptions, setMonthOptions] = useState<string[]>(() => [
     getCurrentMonth(),
@@ -111,6 +118,7 @@ export function LedgerPage() {
     date: getToday(),
     category: '',
     amount: '',
+    writer: user.name,
     description: '',
     paymentMethod: '',
   });
@@ -195,8 +203,24 @@ export function LedgerPage() {
           );
         });
 
-        setItems(validItems);
-        writeItemsCache(month, validItems);
+        const normalizedItems = validItems.map((item: LedgerItem) => {
+          if (!item.paymentMethod && item.writer && item.description) {
+            return {
+              ...item,
+              paymentMethod: item.description,
+              description: item.writer,
+              writer: '미지정',
+            };
+          }
+
+          return {
+            ...item,
+            writer: item.writer || '미지정',
+          };
+        });
+
+        setItems(normalizedItems);
+        writeItemsCache(month, normalizedItems);
       } else {
         console.error('Failed to load items:', result.message);
       }
@@ -268,6 +292,7 @@ export function LedgerPage() {
           date: getToday(),
           category: '',
           amount: '',
+          writer: user.name,
           description: '',
           paymentMethod: '',
         });
@@ -300,6 +325,7 @@ export function LedgerPage() {
       date: formatDateForInput(item.date),
       category: item.category,
       amount: String(item.amount),
+      writer: item.writer,
       description: item.description,
       paymentMethod: item.paymentMethod,
     });
@@ -310,6 +336,7 @@ export function LedgerPage() {
       date: getToday(),
       category: '',
       amount: '',
+      writer: user.name,
       description: '',
       paymentMethod: '',
     });
@@ -324,6 +351,7 @@ export function LedgerPage() {
       date: getToday(),
       category: '',
       amount: '',
+      writer: user.name,
       description: '',
       paymentMethod: '',
     });
@@ -393,6 +421,7 @@ export function LedgerPage() {
     formData.date &&
     formData.category &&
     formData.amount &&
+    formData.writer &&
     formData.paymentMethod;
 
   // 화면에 표시할 때 날짜 내림차순으로 정렬 (최신 날짜가 위로)
@@ -455,13 +484,18 @@ export function LedgerPage() {
                 </div>
                 <div className={styles.itemBody}>
                   <span className={styles.itemCategory}>{item.category}</span>
-                  <span className={styles.itemPayment}>
-                    {item.paymentMethod}
-                  </span>
+                  <div className={styles.itemMeta}>
+                    <span className={styles.itemWriter}>{item.writer}</span>
+                  </div>
                 </div>
-                {item.description && (
-                  <div className={styles.itemDescription}>
-                    {item.description}
+                {(item.description || item.paymentMethod) && (
+                  <div className={styles.itemFooter}>
+                    <div className={styles.itemDescription}>
+                      {item.description}
+                    </div>
+                    <span className={styles.itemPayment}>
+                      {item.paymentMethod}
+                    </span>
                   </div>
                 )}
               </div>
@@ -553,6 +587,19 @@ export function LedgerPage() {
               value={formData.paymentMethod}
               onChange={handleChange}
               placeholder="결제수단을 입력하세요"
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="writer">작성자</label>
+            <input
+              type="text"
+              id="writer"
+              name="writer"
+              value={formData.writer}
+              onChange={handleChange}
+              placeholder="작성자를 입력하세요"
               required
             />
           </div>

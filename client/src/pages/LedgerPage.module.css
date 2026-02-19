@@ -200,11 +200,40 @@
   color: #666;
 }
 
-.itemDescription {
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.itemWriter {
+  font-size: 13px;
+  color: #6c757d;
+  background: #f7f0ea;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.itemFooter {
   margin-top: 8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.itemDescription {
   font-size: 13px;
   color: #666;
   line-height: 1.4;
+  word-break: break-word;
+}
+
+.itemFooter .itemPayment {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .modalForm {

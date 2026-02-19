@@ -52,7 +52,7 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'ledger':
-        return <LedgerPage />;
+        return <LedgerPage user={user!} />;
       case 'bible':
         return <BiblePage user={user!} />;
       case 'todo':
