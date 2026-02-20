@@ -55,15 +55,26 @@ export function Root() {
       <UpdateModal
         isOpen={showUpdateModal}
         onConfirm={async () => {
+          const isNative =
+            'Capacitor' in window &&
+            typeof (
+              window as { Capacitor?: { isNativePlatform?: () => boolean } }
+            ).Capacitor?.isNativePlatform === 'function' &&
+            (
+              window as { Capacitor?: { isNativePlatform?: () => boolean } }
+            ).Capacitor?.isNativePlatform?.();
+
           if (updateSW) {
-            await updateSW(true);
-            // Capacitor 앱인 경우 종료 시도
-            if ('Capacitor' in window) {
-              const { App } = await import('@capacitor/app');
-              App.exitApp();
-            }
-          } else {
+            await updateSW(!isNative);
+          } else if (!isNative) {
             window.location.reload();
+          }
+
+          if (isNative) {
+            const { App } = await import('@capacitor/app');
+            setTimeout(() => {
+              App.exitApp();
+            }, 300);
           }
         }}
       />
