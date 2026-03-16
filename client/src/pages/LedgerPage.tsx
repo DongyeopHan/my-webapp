@@ -203,21 +203,12 @@ export function LedgerPage({ user }: LedgerPageProps) {
           );
         });
 
-        const normalizedItems = validItems.map((item: LedgerItem) => {
-          if (!item.paymentMethod && item.writer && item.description) {
-            return {
-              ...item,
-              paymentMethod: item.description,
-              description: item.writer,
-              writer: '미지정',
-            };
-          }
-
-          return {
-            ...item,
-            writer: item.writer || '미지정',
-          };
-        });
+        const normalizedItems = validItems.map((item: LedgerItem) => ({
+          ...item,
+          writer: item.writer || '미지정',
+          description: item.description || '',
+          paymentMethod: item.paymentMethod || '',
+        }));
 
         setItems(normalizedItems);
         writeItemsCache(month, normalizedItems);
@@ -418,11 +409,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
   };
 
   const isFormValid =
-    formData.date &&
-    formData.category &&
-    formData.amount &&
-    formData.writer &&
-    formData.paymentMethod;
+    formData.date && formData.category && formData.amount && formData.writer;
 
   // 화면에 표시할 때 날짜 내림차순으로 정렬 (최신 날짜가 위로)
   const sortedItems = useMemo(() => sortByDateDesc<LedgerItem>(items), [items]);
@@ -523,7 +510,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
       >
         <form className={styles.modalForm} onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
-            <label htmlFor="date">날짜</label>
+            <label htmlFor="date">날짜*</label>
             <input
               type="date"
               id="date"
@@ -535,7 +522,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="category">카테고리</label>
+            <label htmlFor="category">카테고리*</label>
             <select
               id="category"
               name="category"
@@ -553,7 +540,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="amount">금액</label>
+            <label htmlFor="amount">금액*</label>
             <input
               type="number"
               id="amount"
@@ -587,12 +574,11 @@ export function LedgerPage({ user }: LedgerPageProps) {
               value={formData.paymentMethod}
               onChange={handleChange}
               placeholder="결제수단을 입력하세요"
-              required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="writer">작성자</label>
+            <label htmlFor="writer">작성자*</label>
             <input
               type="text"
               id="writer"
