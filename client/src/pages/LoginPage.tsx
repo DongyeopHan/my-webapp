@@ -6,11 +6,12 @@ import type { User } from '../types/user';
 
 type LoginPageProps = {
   onLogin: (user: User) => void;
+  notice?: string;
 };
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, notice = '' }: LoginPageProps) {
   const [isSignup, setIsSignup] = useState(false);
-  const [username, setUsername] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -20,8 +21,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
     setError('');
 
-    if (!username || !password) {
+    if (!loginId || !password) {
       setError('아이디와 비밀번호를 입력해주세요');
+      return;
+    }
+
+    if (isSignup && loginId.trim().length < 3) {
+      setError('아이디는 3자 이상이어야 합니다');
+      return;
+    }
+
+    if (isSignup && password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다');
       return;
     }
 
@@ -34,8 +45,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
     try {
       const user = isSignup
-        ? await authAPI.signup(username, password, name)
-        : await authAPI.login(username, password);
+        ? await authAPI.signup(loginId, password, name)
+        : await authAPI.login(loginId, password);
       onLogin(user);
     } catch (err) {
       setError(
@@ -56,14 +67,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <h2 className={styles.loginTitle}>
           {isSignup ? '회원가입' : '로그인'}
         </h2>
+        {notice && <div className={styles.noticeMessage}>{notice}</div>}
         <form className={styles.loginForm} onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
-            <label htmlFor="username">아이디</label>
+            <label htmlFor="loginId">아이디</label>
             <input
               type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="loginId"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
               placeholder="아이디를 입력하세요"
               disabled={loading}
             />

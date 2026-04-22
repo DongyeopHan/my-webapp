@@ -1,109 +1,151 @@
 import { MONGODB_API_BASE_URL } from '../config/api';
+import { getStoredUser, notifyLoggedOut } from './authStorage';
+import type { User } from '../types/user';
+import type { Todo } from '../types/todo';
 
 const API_URL = MONGODB_API_BASE_URL;
+const SESSION_EXPIRED_MESSAGE =
+  '세션이 만료되어 로그아웃되었습니다. 다시 로그인해주세요.';
+
+type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+type RequestJsonOptions = {
+  method?: RequestMethod;
+  body?: unknown;
+  requiresAuth?: boolean;
+};
+
+const createAuthHeaders = (): HeadersInit => {
+  const storedUser = getStoredUser();
+
+  if (!storedUser?.accessToken) {
+    return { 'Content-Type': 'application/json' };
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${storedUser.accessToken}`,
+  };
+};
+
+const parseErrorMessage = async (
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> => {
+  try {
+    const error = (await response.json()) as { message?: string };
+    return error.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+};
+
+const handleUnauthorizedResponse = (
+  response: Response,
+  requiresAuth: boolean,
+) => {
+  if (requiresAuth && response.status === 401) {
+    notifyLoggedOut({
+      reason: 'unauthorized',
+      message: SESSION_EXPIRED_MESSAGE,
+    });
+  }
+};
+
+const requestJson = async <T>(
+  path: string,
+  fallbackMessage: string,
+  options: RequestJsonOptions = {},
+): Promise<T> => {
+  const { method = 'GET', body, requiresAuth = false } = options;
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers: requiresAuth
+      ? createAuthHeaders()
+      : { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    handleUnauthorizedResponse(response, requiresAuth);
+    throw new Error(await parseErrorMessage(response, fallbackMessage));
+  }
+
+  return response.json() as Promise<T>;
+};
 
 export const authAPI = {
-  login: async (username: string, password: string) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
+  login: async (loginId: string, password: string): Promise<User> => {
+    return requestJson<User>('/auth/login', '로그인 실패', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: { loginId, password },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '로그인 실패');
-    }
-
-    return response.json();
   },
 
-  signup: async (username: string, password: string, name: string) => {
-    const response = await fetch(`${API_URL}/auth/signup`, {
+  signup: async (
+    loginId: string,
+    password: string,
+    name: string,
+  ): Promise<User> => {
+    return requestJson<User>('/auth/signup', '회원가입 실패', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, name }),
+      body: { loginId, password, name },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '회원가입 실패');
-    }
-
-    return response.json();
   },
 };
 
 export const bibleAPI = {
-  getProgress: async (userId: string) => {
-    const response = await fetch(`${API_URL}/scripture/${userId}`);
-
-    if (!response.ok) {
-      throw new Error('진행상황 조회 실패');
-    }
-
-    return response.json();
+  getProgress: async (): Promise<Record<string, number[]>> => {
+    return requestJson<Record<string, number[]>>(
+      '/scripture/me',
+      '진행상황 조회 실패',
+      {
+        requiresAuth: true,
+      },
+    );
   },
 
   saveProgress: async (
-    userId: string,
     bookName: string,
     readChapters: number[],
-  ) => {
-    const response = await fetch(`${API_URL}/scripture/${userId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookName, readChapters }),
-    });
-
-    if (!response.ok) {
-      throw new Error('진행상황 저장 실패');
-    }
-
-    return response.json();
+  ): Promise<Record<string, unknown>> => {
+    return requestJson<Record<string, unknown>>(
+      '/scripture/me',
+      '진행상황 저장 실패',
+      {
+        method: 'POST',
+        body: { bookName, readChapters },
+        requiresAuth: true,
+      },
+    );
   },
 };
 
 export const todoAPI = {
-  getTodos: async (userId: string) => {
-    const response = await fetch(`${API_URL}/todo/${userId}`);
-
-    if (!response.ok) {
-      throw new Error('Todo 목록 조회 실패');
-    }
-
-    return response.json();
+  getTodos: async (): Promise<Todo[]> => {
+    return requestJson<Todo[]>('/todo/me', 'Todo 목록 조회 실패', {
+      requiresAuth: true,
+    });
   },
 
   createTodo: async (
-    userId: string,
     title: string,
     time: string,
     content: string,
-  ) => {
-    const response = await fetch(`${API_URL}/todo/${userId}`, {
+  ): Promise<Todo> => {
+    return requestJson<Todo>('/todo/me', 'Todo 생성 실패', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, time, content }),
+      body: { title, time, content },
+      requiresAuth: true,
     });
-
-    if (!response.ok) {
-      throw new Error('Todo 생성 실패');
-    }
-
-    return response.json();
   },
 
-  toggleTodo: async (todoId: string) => {
-    const response = await fetch(`${API_URL}/todo/${todoId}/toggle`, {
+  toggleTodo: async (todoId: string): Promise<Todo> => {
+    return requestJson<Todo>(`/todo/${todoId}/toggle`, 'Todo 상태 변경 실패', {
       method: 'PATCH',
+      requiresAuth: true,
     });
-
-    if (!response.ok) {
-      throw new Error('Todo 상태 변경 실패');
-    }
-
-    return response.json();
   },
 
   updateTodo: async (
@@ -111,29 +153,22 @@ export const todoAPI = {
     title: string,
     time: string,
     content: string,
-  ) => {
-    const response = await fetch(`${API_URL}/todo/${todoId}`, {
+  ): Promise<Todo> => {
+    return requestJson<Todo>(`/todo/${todoId}`, 'Todo 수정 실패', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, time, content }),
+      body: { title, time, content },
+      requiresAuth: true,
     });
-
-    if (!response.ok) {
-      throw new Error('Todo 수정 실패');
-    }
-
-    return response.json();
   },
 
-  deleteTodo: async (todoId: string) => {
-    const response = await fetch(`${API_URL}/todo/${todoId}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Todo 삭제 실패');
-    }
-
-    return response.json();
+  deleteTodo: async (todoId: string): Promise<{ message: string }> => {
+    return requestJson<{ message: string }>(
+      `/todo/${todoId}`,
+      'Todo 삭제 실패',
+      {
+        method: 'DELETE',
+        requiresAuth: true,
+      },
+    );
   },
 };

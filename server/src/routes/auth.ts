@@ -1,22 +1,47 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import { signAccessToken } from '../config/auth.js';
 
 const router = Router();
+
+const MIN_LOGIN_ID_LENGTH = 3;
+const MIN_PASSWORD_LENGTH = 8;
+
+const isBcryptHash = (value: string): boolean => value.startsWith('$2');
+
+const buildAuthResponse = (user: {
+  _id: unknown;
+  loginId: string;
+  name: string;
+}) => {
+  const userId = String(user._id);
+  return {
+    userId,
+    loginId: user.loginId,
+    name: user.name,
+    accessToken: signAccessToken({
+      userId,
+      loginId: user.loginId,
+      name: user.name,
+    }),
+  };
+};
 
 // 로그인 (간단한 인증)
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { loginId, password } = req.body;
 
-    if (!username || !password) {
+    if (!loginId || !password) {
       return res
         .status(400)
         .json({ message: '아이디와 비밀번호를 입력해주세요' });
     }
 
     // 사용자 찾기
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ loginId });
 
     // 사용자가 없으면 로그인 거부
     if (!user) {
@@ -25,18 +50,23 @@ router.post('/login', async (req: Request, res: Response) => {
         .json({ message: '아이디 또는 비밀번호가 일치하지 않습니다' });
     }
 
-    // 비밀번호 확인
-    if (user.password !== password) {
+    const storedPassword = user.password;
+    const isPasswordValid = isBcryptHash(storedPassword)
+      ? await bcrypt.compare(password, storedPassword)
+      : storedPassword === password;
+
+    if (!isPasswordValid) {
       return res
         .status(401)
         .json({ message: '아이디 또는 비밀번호가 일치하지 않습니다' });
     }
 
-    res.json({
-      userId: user._id,
-      username: user.username,
-      name: user.name,
-    });
+    if (!isBcryptHash(storedPassword)) {
+      user.password = await bcrypt.hash(password, 10);
+      await user.save();
+    }
+
+    res.json(buildAuthResponse(user));
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: '로그인 중 오류가 발생했습니다' });
@@ -46,16 +76,31 @@ router.post('/login', async (req: Request, res: Response) => {
 // 회원가입
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { username, password, name } = req.body;
+    const { loginId, password, name } = req.body;
 
-    if (!username || !password || !name) {
+    if (!loginId || !password || !name) {
       return res
         .status(400)
         .json({ message: '아이디, 비밀번호, 이름을 모두 입력해주세요' });
     }
 
+    if (loginId.trim().length < MIN_LOGIN_ID_LENGTH) {
+      return res
+        .status(400)
+        .json({ message: '아이디는 3자 이상이어야 합니다' });
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res
+        .status(400)
+        .json({ message: '비밀번호는 8자 이상이어야 합니다' });
+    }
+
     // 이미 존재하는 사용자 확인
-    const existingUser = await User.findOne({ username });
+    const normalizedLoginId = loginId.trim();
+    const normalizedName = name.trim();
+
+    const existingUser = await User.findOne({ loginId: normalizedLoginId });
     if (existingUser) {
       return res
         .status(409)
@@ -65,18 +110,15 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 
     // 새 사용자 생성
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
-      username,
-      password, // 실제 프로덕션에서는 해시화 필요
-      name,
+      loginId: normalizedLoginId,
+      password: hashedPassword,
+      name: normalizedName,
     });
     await user.save();
 
-    res.json({
-      userId: user._id,
-      username: user.username,
-      name: user.name,
-    });
+    res.status(201).json(buildAuthResponse(user));
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ message: '회원가입 중 오류가 발생했습니다' });

@@ -79,7 +79,7 @@ export function BiblePage({ user }: BiblePageProps) {
         }
 
         setLoading(true);
-        const progress = await bibleAPI.getProgress(user.userId);
+        const progress = await bibleAPI.getProgress();
 
         // { bookName: [chapters] } → { bookName: Set<number> }
         const restored: Record<string, Set<number>> = {};
@@ -106,11 +106,7 @@ export function BiblePage({ user }: BiblePageProps) {
   const saveProgress = useCallback(
     async (bookName: string, chapters: Set<number>) => {
       try {
-        await bibleAPI.saveProgress(
-          user.userId,
-          bookName,
-          Array.from(chapters),
-        );
+        await bibleAPI.saveProgress(bookName, Array.from(chapters));
       } catch (error) {
         console.error('진행상황 저장 실패:', error);
         setErrorModal({

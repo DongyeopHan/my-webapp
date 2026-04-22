@@ -1,12 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import scriptureRoutes from './routes/scripture.js';
 import todoRoutes from './routes/todo.js';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Always load server/.env regardless of the shell working directory.
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 

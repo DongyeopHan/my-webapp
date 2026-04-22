@@ -92,7 +92,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
     if (lastVisit && lastVisit !== today) {
       try {
         // 완료된 Todo들을 가져와서 삭제
-        const data = await todoAPI.getTodos(user.userId);
+        const data = await todoAPI.getTodos();
         const completedTodos = data.filter((todo: Todo) => todo.completed);
 
         // 완료된 Todo들 삭제
@@ -115,7 +115,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
         setTodos(cached);
       }
       setLoading(true);
-      const data = await todoAPI.getTodos(user.userId);
+      const data = await todoAPI.getTodos();
       const sortedData = sortByTimeAsc<Todo>(data);
       setTodos(sortedData);
       writeTodosCache(user.userId, sortedData);
@@ -141,12 +141,7 @@ export function TodoListPage({ user }: TodoListPageProps) {
     );
 
     try {
-      await todoAPI.createTodo(
-        user.userId,
-        newTodo.title,
-        timeString,
-        newTodo.content,
-      );
+      await todoAPI.createTodo(newTodo.title, timeString, newTodo.content);
       setNewTodo({
         title: '',
         period: '오전',

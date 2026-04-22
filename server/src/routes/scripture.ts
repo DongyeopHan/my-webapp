@@ -2,17 +2,17 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import ScriptureProgress from '../models/ScriptureProgress.js';
 import mongoose from 'mongoose';
+import { authenticate, type AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// 진행상황 조회
-router.get('/:userId', async (req: Request, res: Response) => {
-  try {
-    const userId = req.params.userId as string;
+router.use(authenticate);
 
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: '잘못된 사용자 ID입니다' });
-    }
+// 진행상황 조회
+router.get('/me', async (req: Request, res: Response) => {
+  try {
+    const authenticatedRequest = req as AuthenticatedRequest;
+    const userId = authenticatedRequest.user.userId;
 
     const progress = await ScriptureProgress.find({
       userId: new mongoose.Types.ObjectId(userId),
@@ -32,14 +32,11 @@ router.get('/:userId', async (req: Request, res: Response) => {
 });
 
 // 진행상황 저장/업데이트
-router.post('/:userId', async (req: Request, res: Response) => {
+router.post('/me', async (req: Request, res: Response) => {
   try {
-    const userId = req.params.userId as string;
+    const authenticatedRequest = req as AuthenticatedRequest;
+    const userId = authenticatedRequest.user.userId;
     const { bookName, readChapters } = req.body;
-
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: '잘못된 사용자 ID입니다' });
-    }
 
     if (!bookName || !Array.isArray(readChapters)) {
       return res.status(400).json({ message: '잘못된 요청 데이터입니다' });

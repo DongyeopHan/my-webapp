@@ -119,6 +119,17 @@
   font-size: 0.9rem;
 }
 
+.noticeMessage {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: #e7f1ff;
+  color: #0b4f99;
+  border: 1px solid #b9d6ff;
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
 .loginHint {
   text-align: center;
   color: #6c757d;

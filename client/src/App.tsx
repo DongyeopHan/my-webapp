@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
 import { BiblePage } from './pages/BiblePage';
@@ -6,6 +6,13 @@ import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import type { User } from './types/user';
+import {
+  AUTH_LOGOUT_EVENT,
+  clearStoredUser,
+  getStoredUser,
+  setStoredUser,
+  type LogoutEventDetail,
+} from './services/authStorage';
 
 type MenuItem = {
   id: string;
@@ -21,25 +28,40 @@ const MENU_ITEMS: MenuItem[] = [
   { id: 'inbody', label: '📊인바디 기록' },
 ];
 
-const USER_STORAGE_KEY = 'logged_in_user';
-
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [sessionNotice, setSessionNotice] = useState('');
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
+    setStoredUser(loggedInUser);
+    setSessionNotice('');
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
+    clearStoredUser();
     setCurrentPage('home');
   };
+
+  useEffect(() => {
+    const handleForcedLogout = (event: Event) => {
+      const customEvent = event as CustomEvent<LogoutEventDetail>;
+      setUser(null);
+      setCurrentPage('home');
+      setSessionNotice(
+        customEvent.detail?.message ||
+          '세션이 만료되어 로그아웃되었습니다. 다시 로그인해주세요.',
+      );
+    };
+
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleForcedLogout);
+
+    return () => {
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleForcedLogout);
+    };
+  }, []);
 
   const handleMenuClick = (id: string) => {
     setCurrentPage(id as PageType);
@@ -66,7 +88,7 @@ function App() {
 
   // 로그인되지 않은 경우 로그인 페이지만 표시
   if (!user) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} notice={sessionNotice} />;
   }
 
   return (
