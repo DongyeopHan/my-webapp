@@ -38,6 +38,8 @@ git push origin main
 ```
 PORT=4000
 MONGODB_URI=mongodb+srv://your-username:your-password@cluster0.xxxxx.mongodb.net/scripture-app?retryWrites=true&w=majority
+JWT_SECRET=your-long-random-secret
+JWT_EXPIRES_IN=none
 ```
 
 (MongoDB Atlas 연결 문자열을 실제 값으로 교체)
