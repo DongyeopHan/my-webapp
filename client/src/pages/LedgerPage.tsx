@@ -10,7 +10,6 @@ import {
   convertSheetNameToMonth,
   formatMonthDisplay,
   formatDateDisplay,
-  sortByDateDesc,
 } from '../utils/dateUtils';
 import { GOOGLE_SHEET_URL } from '../config/api';
 import type { User } from '../types/user';
@@ -139,7 +138,6 @@ export function LedgerPage({ user }: LedgerPageProps) {
 
   const loadMonthOptions = useCallback(async () => {
     try {
-      setIsBlockingLoad(true);
       setIsLoadingMonths(true);
       const response = await fetch(`${GOOGLE_SHEET_URL}?action=getMonths`);
       const result = await response.json();
@@ -228,10 +226,19 @@ export function LedgerPage({ user }: LedgerPageProps) {
     }
   }, []);
 
+  // ✅ 초기 마운트: 월 옵션과 현재 월 데이터를 병렬로 로드
   useEffect(() => {
-    loadMonthOptions();
-  }, [loadMonthOptions]);
+    const currentMonth = getCurrentMonth();
 
+    setIsBlockingLoad(true);
+
+    // 두 API를 동시에 호출
+    Promise.all([loadMonthOptions(), loadItems(currentMonth)]).finally(() => {
+      setIsBlockingLoad(false);
+    });
+  }, [loadMonthOptions, loadItems]);
+
+  // ✅ 월 선택 변경: 해당 월의 데이터 로드
   useEffect(() => {
     if (!isMonthOptionsLoaded) {
       return;
@@ -241,6 +248,9 @@ export function LedgerPage({ user }: LedgerPageProps) {
         return;
       }
       lastLoadedMonthRef.current = selectedMonth;
+
+      // 캐시가 있으면 중복 로드 방지하면서 백그라운드에서 새로고침
+      setIsBlockingLoad(false);
       loadItems(selectedMonth);
     }
   }, [selectedMonth, monthOptions, loadItems, isMonthOptionsLoaded]);
@@ -411,9 +421,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
   const isFormValid =
     formData.date && formData.category && formData.amount && formData.writer;
 
-  // 화면에 표시할 때 날짜 내림차순으로 정렬 (최신 날짜가 위로)
-  const sortedItems = useMemo(() => sortByDateDesc<LedgerItem>(items), [items]);
-
+  // ✅ 서버에서 이미 내림차순 정렬되어 있음 (중복 정렬 제거)
   const totalAmount = useMemo(
     () => items.reduce((sum, item) => sum + item.amount, 0),
     [items],
@@ -452,10 +460,10 @@ export function LedgerPage({ user }: LedgerPageProps) {
         </div>
 
         <div className={styles.itemList}>
-          {sortedItems.length === 0 ? (
+          {items.length === 0 ? (
             <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
           ) : (
-            sortedItems.map((item, index) => (
+            items.map((item: LedgerItem, index: number) => (
               <div
                 key={index}
                 className={styles.item}

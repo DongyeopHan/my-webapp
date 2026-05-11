@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import scriptureRoutes from './routes/scripture.js';
+import stockRoutes from './routes/stocks.js';
 import todoRoutes from './routes/todo.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,7 @@ app.use(express.json());
 // 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/scripture', scriptureRoutes);
+app.use('/api/stocks', stockRoutes);
 app.use('/api/todo', todoRoutes);
 
 app.get('/health', (_, res) => {

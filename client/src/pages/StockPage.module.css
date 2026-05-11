@@ -1,0 +1,390 @@
+.stockPage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.summaryBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #7e6757;
+}
+
+.watchlistSection,
+.searchSection {
+  padding: 18px;
+  border-radius: 18px;
+  background: #fffdfb;
+  border: 1px solid #f1e3d9;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 18px;
+  color: #34261d;
+}
+
+.sectionDescription {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #7e6757;
+  line-height: 1.5;
+}
+
+.watchlistChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.watchlistChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #f0d4c3;
+  border-radius: 999px;
+  background: #fff4eb;
+  color: #5d4332;
+  cursor: pointer;
+}
+
+.watchlistChipCode {
+  color: #a36d4a;
+  font-size: 12px;
+}
+
+.watchlistChipRemove {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c66a39;
+}
+
+.searchAutocomplete {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.searchInput {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #dfc3b3;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #34261d;
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: 2px solid rgba(198, 106, 57, 0.18);
+  border-color: #c66a39;
+}
+
+.searchDropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  background: #ffffff;
+  border: 1px solid #f0d9cb;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(60, 40, 24, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.searchDropdownItem {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.searchDropdownItem:hover {
+  background: #fff5ed;
+}
+
+.searchDropdownItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #faf7f5;
+}
+
+.searchDropdownName {
+  margin: 0;
+  font-size: 16px;
+  color: #34261d;
+}
+
+.searchDropdownMeta {
+  margin-left: auto;
+  font-size: 13px;
+  color: #8f7766;
+}
+
+.searchDropdownAction {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c66a39;
+}
+
+.searchDropdownStatus {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #8f7766;
+}
+
+.errorMessage {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff1f1;
+  border: 1px solid #f2c7c7;
+  color: #a53f3f;
+}
+
+.stockGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  padding-bottom: 10px;
+}
+
+.stockCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #f2e1d5;
+  box-shadow: 0 12px 30px rgba(93, 78, 55, 0.08);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stockName {
+  margin: 0;
+  font-size: 18px;
+  color: #34261d;
+}
+
+.stockCode {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #8f7766;
+}
+
+.stockCodeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tradeStateInline {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff2e8;
+  color: #8a664f;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.directionBadge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.removeStockButton {
+  border: 1px solid #f1b9b9;
+  background: #fff4f4;
+  color: #b94848;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.removeStockButton:hover {
+  background: #ffe7e7;
+}
+
+.removeStockButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.price {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #2c211a;
+}
+
+.changeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.changeValue,
+.changePercent {
+  font-weight: 700;
+}
+
+.metaBoxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.metaBoxItem {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7f1;
+  border: 1px solid #f2dfd2;
+}
+
+.metaBoxLabel {
+  font-size: 12px;
+  color: #8f7766;
+  white-space: nowrap;
+}
+
+.metaBoxValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4f3a2d;
+  white-space: nowrap;
+}
+
+.rising {
+  color: #d13d36;
+  background-color: rgba(209, 61, 54, 0.1);
+}
+
+.falling {
+  color: #2473d6;
+  background-color: rgba(36, 115, 214, 0.1);
+}
+
+.unchanged {
+  color: #6f6f6f;
+  background-color: rgba(111, 111, 111, 0.1);
+}
+
+.skeletonCard {
+  overflow: hidden;
+}
+
+.skeletonTitle,
+.skeletonPrice,
+.skeletonMeta {
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f8e8dd 25%, #fff6f1 50%, #f8e8dd 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.skeletonTitle {
+  width: 50%;
+  height: 22px;
+}
+
+.skeletonPrice {
+  width: 70%;
+  height: 36px;
+}
+
+.skeletonMeta {
+  width: 100%;
+  height: 56px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .sectionHeader,
+  .searchDropdownItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchDropdownMeta {
+    margin-left: 0;
+  }
+
+  .price {
+    font-size: 26px;
+  }
+
+  .stockCodeRow {
+    flex-wrap: wrap;
+  }
+
+  .metaBoxRow {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .metaBoxItem {
+    padding: 9px 10px;
+  }
+
+  .metaBoxLabel,
+  .metaBoxValue {
+    font-size: 12px;
+  }
+}

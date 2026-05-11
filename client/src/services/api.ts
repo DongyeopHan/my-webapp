@@ -1,6 +1,11 @@
 import { MONGODB_API_BASE_URL } from '../config/api';
 import { getStoredUser, notifyLoggedOut } from './authStorage';
 import type { User } from '../types/user';
+import type {
+  StockQuoteResponse,
+  StockSearchResponse,
+  StockWatchlistResponse,
+} from '../types/stock';
 import type { Todo } from '../types/todo';
 
 const API_URL = MONGODB_API_BASE_URL;
@@ -167,6 +172,57 @@ export const todoAPI = {
       'Todo 삭제 실패',
       {
         method: 'DELETE',
+        requiresAuth: true,
+      },
+    );
+  },
+};
+
+export const stockAPI = {
+  getQuotes: async (codes?: string[]): Promise<StockQuoteResponse> => {
+    const params = new URLSearchParams();
+
+    if (codes && codes.length > 0) {
+      params.set('codes', codes.join(','));
+    }
+
+    const query = params.toString();
+    const path = query ? `/stocks/quotes?${query}` : '/stocks/quotes';
+
+    return requestJson<StockQuoteResponse>(path, '주식 시세 조회 실패', {
+      requiresAuth: true,
+    });
+  },
+
+  searchStocks: async (query: string): Promise<StockSearchResponse> => {
+    const params = new URLSearchParams({ query });
+
+    return requestJson<StockSearchResponse>(
+      `/stocks/search?${params.toString()}`,
+      '종목 검색 실패',
+      {
+        requiresAuth: true,
+      },
+    );
+  },
+
+  getWatchlist: async (): Promise<StockWatchlistResponse> => {
+    return requestJson<StockWatchlistResponse>(
+      '/stocks/watchlist/me',
+      '관심종목 조회 실패',
+      {
+        requiresAuth: true,
+      },
+    );
+  },
+
+  updateWatchlist: async (codes: string[]): Promise<StockWatchlistResponse> => {
+    return requestJson<StockWatchlistResponse>(
+      '/stocks/watchlist/me',
+      '관심종목 저장 실패',
+      {
+        method: 'PUT',
+        body: { codes },
         requiresAuth: true,
       },
     );

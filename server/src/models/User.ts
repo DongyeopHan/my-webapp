@@ -5,6 +5,7 @@ export interface IUser extends Document {
   username?: string;
   password: string;
   name: string;
+  stockWatchlistCodes: string[];
   createdAt: Date;
 }
 
@@ -14,6 +15,7 @@ const UserSchema: Schema = new Schema({
   username: { type: String, unique: true, sparse: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
+  stockWatchlistCodes: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now },
 });
 

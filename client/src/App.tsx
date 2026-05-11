@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
 import { BiblePage } from './pages/BiblePage';
+import { StockPage } from './pages/StockPage';
 import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -19,13 +20,13 @@ type MenuItem = {
   label: string;
 };
 
-type PageType = 'home' | 'todo' | 'bible' | 'ledger' | 'inbody';
+type PageType = 'home' | 'todo' | 'bible' | 'ledger' | 'stock';
 
 const MENU_ITEMS: MenuItem[] = [
   { id: 'todo', label: '✅Todo List' },
   { id: 'bible', label: '📖성경통독' },
   { id: 'ledger', label: '📒가계부' },
-  { id: 'inbody', label: '📊인바디 기록' },
+  { id: 'stock', label: '📈주식' },
 ];
 
 function App() {
@@ -79,8 +80,8 @@ function App() {
         return <BiblePage user={user!} />;
       case 'todo':
         return <TodoListPage user={user!} />;
-      case 'inbody':
-        return <p className="app-main-placeholder">준비 중...</p>;
+      case 'stock':
+        return <StockPage />;
       default:
         return <p className="app-main-placeholder">메뉴를 선택해주세요</p>;
     }
