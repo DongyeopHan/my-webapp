@@ -108,6 +108,15 @@ const invalidateItemsCache = (month: string) => {
   localStorage.removeItem(getItemsCacheKey(month));
 };
 
+const createInitialFormData = (writer: string): LedgerFormData => ({
+  date: getToday(),
+  category: '',
+  amount: '',
+  writer,
+  description: '',
+  paymentMethod: '',
+});
+
 type LedgerPageProps = {
   user: User;
   activeTab: ActiveTab;
@@ -125,14 +134,9 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
   const [isBlockingLoad, setIsBlockingLoad] = useState(true);
   const [isMonthOptionsLoaded, setIsMonthOptionsLoaded] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LedgerItem | null>(null);
-  const [formData, setFormData] = useState<LedgerFormData>({
-    date: getToday(),
-    category: '',
-    amount: '',
-    writer: user.name,
-    description: '',
-    paymentMethod: '',
-  });
+  const [formData, setFormData] = useState<LedgerFormData>(() =>
+    createInitialFormData(user.name),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [submitModal, setSubmitModal] = useState<{
@@ -243,6 +247,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     const currentMonth = getCurrentMonth();
 
     setIsBlockingLoad(true);
+    lastLoadedMonthRef.current = currentMonth;
 
     // 두 API를 동시에 호출
     Promise.all([loadMonthOptions(), loadItems(currentMonth)]).finally(() => {
@@ -301,14 +306,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
           message: '저장되었습니다!',
           isSuccess: true,
         });
-        setFormData({
-          date: getToday(),
-          category: '',
-          amount: '',
-          writer: user.name,
-          description: '',
-          paymentMethod: '',
-        });
+        setFormData(createInitialFormData(user.name));
         setSelectedItem(null);
         invalidateItemsCache(selectedMonth);
         loadItems(selectedMonth); // 목록 새로고침
@@ -345,14 +343,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
 
   const handleCloseModal = () => {
     setSelectedItem(null);
-    setFormData({
-      date: getToday(),
-      category: '',
-      amount: '',
-      writer: user.name,
-      description: '',
-      paymentMethod: '',
-    });
+    setFormData(createInitialFormData(user.name));
   };
 
   const handleDeleteClick = (item: LedgerItem) => {
@@ -452,11 +443,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
         ? (categoryOptionStats.get(filterCategory) ?? { count: 0, total: 0 })
         : { count: items.length, total: totalAmount },
     [categoryOptionStats, filterCategory, items.length, totalAmount],
-  );
-
-  const averageAmount = useMemo(
-    () => (items.length > 0 ? Math.round(totalAmount / items.length) : 0),
-    [items.length, totalAmount],
   );
 
   // 카테고리별 통계

@@ -33,12 +33,14 @@ const TAB_ITEMS: { id: ActiveTab; label: string }[] = [
   { id: 'add', label: '➕ 추가' },
 ];
 
+const initialStoredUser = getStoredUser();
+
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('ledger');
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
-  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [user, setUser] = useState<User | null>(initialStoredUser);
   const [sessionNotice, setSessionNotice] = useState('');
-  const [showSplash, setShowSplash] = useState(() => getStoredUser() !== null);
+  const [showSplash, setShowSplash] = useState(initialStoredUser !== null);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -103,30 +105,6 @@ function App() {
     return <LoginPage onLogin={handleLogin} notice={sessionNotice} />;
   }
 
-  if (showSplash) {
-    return (
-      <div className="splash-screen">
-        <div className="splash-content">
-          <div className="splash-logo" aria-hidden="true">
-            <img
-              src={appIcon}
-              alt=""
-              className="splash-logo-image"
-              loading="eager"
-              decoding="async"
-            />
-          </div>
-          <h1 className="splash-title">동희부부's 앱</h1>
-          <div className="splash-dots">
-            <span className="splash-dot" />
-            <span className="splash-dot" />
-            <span className="splash-dot" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="app">
       <OfflineIndicator />
@@ -159,6 +137,28 @@ function App() {
           ))}
         </div>
       </footer>
+
+      {showSplash && (
+        <div className="splash-screen" role="status" aria-live="polite">
+          <div className="splash-content">
+            <div className="splash-logo" aria-hidden="true">
+              <img
+                src={appIcon}
+                alt=""
+                className="splash-logo-image"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+            <h1 className="splash-title">동희부부's 앱</h1>
+            <div className="splash-dots">
+              <span className="splash-dot" />
+              <span className="splash-dot" />
+              <span className="splash-dot" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
