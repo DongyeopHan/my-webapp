@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
-import nativeSplash from '../android/app/src/main/res/drawable/splash.png';
 // import { BiblePage } from './pages/BiblePage';
 // import { StockPage } from './pages/StockPage';
 // import { TodoListPage } from './pages/TodoListPage';
@@ -40,27 +39,18 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [user, setUser] = useState<User | null>(initialStoredUser);
   const [sessionNotice, setSessionNotice] = useState('');
-  const [showSplash, setShowSplash] = useState(initialStoredUser !== null);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     setStoredUser(loggedInUser);
     setSessionNotice('');
-    setShowSplash(true);
   };
 
   const handleLogout = () => {
     setUser(null);
     clearStoredUser();
     setCurrentPage('home');
-    setShowSplash(false);
   };
-
-  useEffect(() => {
-    if (!showSplash) return;
-    const timer = setTimeout(() => setShowSplash(false), 2500);
-    return () => clearTimeout(timer);
-  }, [showSplash]);
 
   useEffect(() => {
     const handleForcedLogout = (event: Event) => {
@@ -137,18 +127,6 @@ function App() {
           ))}
         </div>
       </footer>
-
-      {showSplash && (
-        <div className="splash-screen" role="status" aria-live="polite">
-          <img
-            src={nativeSplash}
-            alt=""
-            className="splash-native-image"
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-      )}
     </div>
   );
 }

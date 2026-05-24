@@ -145,22 +145,6 @@ body {
   box-shadow: 0 4px 12px rgba(255, 176, 136, 0.3);
 }
 
-.splash-screen {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ededed;
-}
-
-.splash-native-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
 @media (max-width: 767px) {
   .app-header {
     padding: 20px 16px;
