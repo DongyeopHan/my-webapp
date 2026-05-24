@@ -551,7 +551,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
             {/* 요약 카드 */}
             <div className={styles.summaryCard}>
               <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>이번달 총 지출</span>
+                <span className={styles.summaryLabel}>총 지출</span>
                 <span className={styles.summaryAmount}>
                   {totalAmount.toLocaleString()}원
                 </span>
@@ -570,7 +570,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
               </div>
             </div>
             <div className={styles.homeCards}>
-              <div className={styles.homeCard}>
+              {/* <div className={styles.homeCard}>
                 <span className={styles.homeCardLabel}>총 지출</span>
                 <strong className={styles.homeCardValue}>
                   {totalAmount.toLocaleString()}원
@@ -587,7 +587,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
                 <strong className={styles.homeCardValue}>
                   {averageAmount.toLocaleString()}원
                 </strong>
-              </div>
+              </div> */}
               <div className={styles.homeCard}>
                 <span className={styles.homeCardLabel}>최대 지출 카테고리</span>
                 <strong className={styles.homeCardValueText}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
+import appIcon from '../icons/icon-192.webp';
 // import { BiblePage } from './pages/BiblePage';
 // import { StockPage } from './pages/StockPage';
 // import { TodoListPage } from './pages/TodoListPage';
@@ -37,18 +38,27 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [user, setUser] = useState<User | null>(() => getStoredUser());
   const [sessionNotice, setSessionNotice] = useState('');
+  const [showSplash, setShowSplash] = useState(() => getStoredUser() !== null);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     setStoredUser(loggedInUser);
     setSessionNotice('');
+    setShowSplash(true);
   };
 
   const handleLogout = () => {
     setUser(null);
     clearStoredUser();
     setCurrentPage('home');
+    setShowSplash(false);
   };
+
+  useEffect(() => {
+    if (!showSplash) return;
+    const timer = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(timer);
+  }, [showSplash]);
 
   useEffect(() => {
     const handleForcedLogout = (event: Event) => {
@@ -91,6 +101,30 @@ function App() {
   // 로그인되지 않은 경우 로그인 페이지만 표시
   if (!user) {
     return <LoginPage onLogin={handleLogin} notice={sessionNotice} />;
+  }
+
+  if (showSplash) {
+    return (
+      <div className="splash-screen">
+        <div className="splash-content">
+          <div className="splash-logo" aria-hidden="true">
+            <img
+              src={appIcon}
+              alt=""
+              className="splash-logo-image"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          <h1 className="splash-title">동희부부's 앱</h1>
+          <div className="splash-dots">
+            <span className="splash-dot" />
+            <span className="splash-dot" />
+            <span className="splash-dot" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
