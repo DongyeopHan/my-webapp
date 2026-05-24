@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
-import appIcon from '../icons/icon-192.webp';
+import nativeSplash from '../android/app/src/main/res/drawable/splash.png';
 // import { BiblePage } from './pages/BiblePage';
 // import { StockPage } from './pages/StockPage';
 // import { TodoListPage } from './pages/TodoListPage';
@@ -140,23 +140,13 @@ function App() {
 
       {showSplash && (
         <div className="splash-screen" role="status" aria-live="polite">
-          <div className="splash-content">
-            <div className="splash-logo" aria-hidden="true">
-              <img
-                src={appIcon}
-                alt=""
-                className="splash-logo-image"
-                loading="eager"
-                decoding="async"
-              />
-            </div>
-            <h1 className="splash-title">동희부부's 앱</h1>
-            <div className="splash-dots">
-              <span className="splash-dot" />
-              <span className="splash-dot" />
-              <span className="splash-dot" />
-            </div>
-          </div>
+          <img
+            src={nativeSplash}
+            alt=""
+            className="splash-native-image"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       )}
     </div>
