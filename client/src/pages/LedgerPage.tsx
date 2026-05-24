@@ -38,6 +38,8 @@ type CachedLedgerItems = {
   items: LedgerItem[];
 };
 
+type ActiveTab = 'home' | 'list' | 'stats' | 'add';
+
 const CATEGORIES = [
   '대출',
   '관리비',
@@ -59,6 +61,15 @@ const CATEGORIES = [
   '가족경조사',
   '지인경조사',
   '여행',
+];
+
+const PAYMENT_METHODS = [
+  '카카오페이',
+  '신용카드',
+  '체크카드',
+  '현금',
+  '계좌이체',
+  '네이버페이',
 ];
 
 const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
@@ -99,9 +110,11 @@ const invalidateItemsCache = (month: string) => {
 
 type LedgerPageProps = {
   user: User;
+  activeTab: ActiveTab;
 };
 
-export function LedgerPage({ user }: LedgerPageProps) {
+export function LedgerPage({ user, activeTab }: LedgerPageProps) {
+  const [filterCategory, setFilterCategory] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [monthOptions, setMonthOptions] = useState<string[]>(() => [
     getCurrentMonth(),
@@ -112,7 +125,6 @@ export function LedgerPage({ user }: LedgerPageProps) {
   const [isBlockingLoad, setIsBlockingLoad] = useState(true);
   const [isMonthOptionsLoaded, setIsMonthOptionsLoaded] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LedgerItem | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState<LedgerFormData>({
     date: getToday(),
     category: '',
@@ -297,7 +309,6 @@ export function LedgerPage({ user }: LedgerPageProps) {
           description: '',
           paymentMethod: '',
         });
-        setShowAddModal(false);
         setSelectedItem(null);
         invalidateItemsCache(selectedMonth);
         loadItems(selectedMonth); // 목록 새로고침
@@ -332,21 +343,7 @@ export function LedgerPage({ user }: LedgerPageProps) {
     });
   };
 
-  const handleAddClick = () => {
-    setFormData({
-      date: getToday(),
-      category: '',
-      amount: '',
-      writer: user.name,
-      description: '',
-      paymentMethod: '',
-    });
-    setSelectedItem(null);
-    setShowAddModal(true);
-  };
-
   const handleCloseModal = () => {
-    setShowAddModal(false);
     setSelectedItem(null);
     setFormData({
       date: getToday(),
@@ -427,76 +424,489 @@ export function LedgerPage({ user }: LedgerPageProps) {
     [items],
   );
 
+  const filteredItems = useMemo(
+    () =>
+      filterCategory
+        ? items.filter((item) => item.category === filterCategory)
+        : items,
+    [items, filterCategory],
+  );
+
+  const categoryOptionStats = useMemo(() => {
+    const stats = new Map<string, { count: number; total: number }>();
+
+    for (const item of items) {
+      const prev = stats.get(item.category) ?? { count: 0, total: 0 };
+      stats.set(item.category, {
+        count: prev.count + 1,
+        total: prev.total + item.amount,
+      });
+    }
+
+    return stats;
+  }, [items]);
+
+  const selectedCategoryStat = useMemo(
+    () =>
+      filterCategory
+        ? (categoryOptionStats.get(filterCategory) ?? { count: 0, total: 0 })
+        : { count: items.length, total: totalAmount },
+    [categoryOptionStats, filterCategory, items.length, totalAmount],
+  );
+
+  const averageAmount = useMemo(
+    () => (items.length > 0 ? Math.round(totalAmount / items.length) : 0),
+    [items.length, totalAmount],
+  );
+
+  // 카테고리별 통계
+  const categoryStats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      map.set(item.category, (map.get(item.category) ?? 0) + item.amount);
+    }
+    return Array.from(map.entries())
+      .map(([cat, total]) => ({
+        category: cat,
+        total,
+        percent: totalAmount > 0 ? (total / totalAmount) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [items, totalAmount]);
+
+  const topCategory = categoryStats[0];
+  const recentItems = useMemo(() => items.slice(0, 5), [items]);
+
+  // 결제수단별 통계
+  const paymentStats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      const key = item.paymentMethod || '미지정';
+      map.set(key, (map.get(key) ?? 0) + item.amount);
+    }
+    return Array.from(map.entries())
+      .map(([method, total]) => ({
+        method,
+        total,
+        percent: totalAmount > 0 ? (total / totalAmount) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [items, totalAmount]);
+
+  // 작성자별 통계
+  const writerStats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      map.set(item.writer, (map.get(item.writer) ?? 0) + item.amount);
+    }
+    return Array.from(map.entries())
+      .map(([writer, total]) => ({
+        writer,
+        total,
+        percent: totalAmount > 0 ? (total / totalAmount) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [items, totalAmount]);
+
+  // 일별 지출 통계 (상위 5일)
+  const dailyStats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      map.set(item.date, (map.get(item.date) ?? 0) + item.amount);
+    }
+    return Array.from(map.entries())
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [items]);
+
   return (
     <div className={styles.ledgerPage}>
-      <div className={styles.ledgerHeader}>
-        <h2 className={styles.ledgerTitle}>가계부</h2>
-        <Button variant="primary" size="small" onClick={handleAddClick}>
-          + 추가
-        </Button>
-      </div>
+      {/* <div className={styles.ledgerHeader}>
+        <h2 className={styles.ledgerTitle}>📒 가계부</h2>
+      </div> */}
 
       <div className={styles.ledgerMain}>
-        <div className={styles.monthSelector}>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className={styles.monthSelect}
-            disabled={isLoadingItems || isLoadingMonths}
-          >
-            {monthOptions.map((month) => (
-              <option key={month} value={month}>
-                {formatMonthDisplay(month)}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* 월 선택 */}
+        {activeTab !== 'add' && (
+          <div className={styles.monthSelector}>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className={styles.monthSelect}
+              disabled={isLoadingItems || isLoadingMonths}
+            >
+              {monthOptions.map((month) => (
+                <option key={month} value={month}>
+                  {formatMonthDisplay(month)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <div className={styles.summary}>
-          <span className={styles.summaryLabel}>총 지출:</span>
-          <span className={styles.summaryAmount}>
-            {totalAmount.toLocaleString()}원
-          </span>
-        </div>
-
-        <div className={styles.itemList}>
-          {items.length === 0 ? (
-            <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
-          ) : (
-            items.map((item: LedgerItem, index: number) => (
-              <div
-                key={index}
-                className={styles.item}
-                onClick={() => handleItemClick(item)}
-              >
-                <div className={styles.itemHeader}>
-                  <span className={styles.itemDate}>
-                    {formatDateDisplay(item.date)}
+        {/* 홈 탭 */}
+        {activeTab === 'home' && (
+          <div className={styles.tabContent}>
+            {/* 요약 카드 */}
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>이번달 총 지출</span>
+                <span className={styles.summaryAmount}>
+                  {totalAmount.toLocaleString()}원
+                </span>
+              </div>
+              <div className={styles.summarySubRow}>
+                <span className={styles.summarySubLabel}>
+                  총 {items.length}건
+                </span>
+                {items.length > 0 && (
+                  <span className={styles.summarySubLabel}>
+                    평균{' '}
+                    {Math.round(totalAmount / items.length).toLocaleString()}
+                    원/건
                   </span>
-                  <span className={styles.itemAmount}>
-                    {item.amount.toLocaleString()}원
-                  </span>
-                </div>
-                <div className={styles.itemBody}>
-                  <span className={styles.itemCategory}>{item.category}</span>
-                  <div className={styles.itemMeta}>
-                    <span className={styles.itemWriter}>{item.writer}</span>
-                  </div>
-                </div>
-                {(item.description || item.paymentMethod) && (
-                  <div className={styles.itemFooter}>
-                    <div className={styles.itemDescription}>
-                      {item.description}
-                    </div>
-                    <span className={styles.itemPayment}>
-                      {item.paymentMethod}
-                    </span>
-                  </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            </div>
+            <div className={styles.homeCards}>
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>총 지출</span>
+                <strong className={styles.homeCardValue}>
+                  {totalAmount.toLocaleString()}원
+                </strong>
+              </div>
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>총 건수</span>
+                <strong className={styles.homeCardValue}>
+                  {items.length}건
+                </strong>
+              </div>
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>건당 평균</span>
+                <strong className={styles.homeCardValue}>
+                  {averageAmount.toLocaleString()}원
+                </strong>
+              </div>
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>최대 지출 카테고리</span>
+                <strong className={styles.homeCardValueText}>
+                  {topCategory
+                    ? `${topCategory.category} (${topCategory.percent.toFixed(1)}%)`
+                    : '-'}
+                </strong>
+              </div>
+            </div>
+
+            <div className={styles.statSection}>
+              <h3 className={styles.statSectionTitle}>최근 지출 5건</h3>
+              <div className={styles.statList}>
+                {recentItems.length === 0 ? (
+                  <p className={styles.emptyMessage}>
+                    이번달 지출 내역이 없습니다
+                  </p>
+                ) : (
+                  recentItems.map((item, idx) => (
+                    <div
+                      key={`${item.date}-${item.row ?? idx}`}
+                      className={styles.statItem}
+                    >
+                      <div className={styles.statItemHeader}>
+                        <span className={styles.statLabel}>
+                          {formatDateDisplay(item.date)} · {item.category}
+                        </span>
+                        <span className={styles.statAmount}>
+                          {item.amount.toLocaleString()}원
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 내역 탭 */}
+        {activeTab === 'list' && (
+          <div className={styles.tabContent}>
+            {/* 카테고리 필터 */}
+            <div className={styles.filterRow}>
+              <div className={styles.filterSelectWrap}>
+                <select
+                  className={styles.filterSelect}
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                >
+                  <option value="">전체 카테고리</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+
+                <div className={styles.filterInfo}>
+                  <span>{selectedCategoryStat.count}건</span>
+                  <span className={styles.filterTotal}>
+                    {selectedCategoryStat.total.toLocaleString()}원
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 지출 목록 */}
+            <div className={styles.itemList}>
+              {filteredItems.length === 0 ? (
+                <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
+              ) : (
+                filteredItems.map((item: LedgerItem, index: number) => (
+                  <div
+                    key={index}
+                    className={styles.item}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <div className={styles.itemHeader}>
+                      <span className={styles.itemDate}>
+                        {formatDateDisplay(item.date)}
+                      </span>
+                      <span className={styles.itemAmount}>
+                        {item.amount.toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className={styles.itemBody}>
+                      <span className={styles.itemCategory}>
+                        {item.category}
+                      </span>
+                      <div className={styles.itemMeta}>
+                        <span className={styles.itemWriter}>{item.writer}</span>
+                      </div>
+                    </div>
+                    {(item.description || item.paymentMethod) && (
+                      <div className={styles.itemFooter}>
+                        <div className={styles.itemDescription}>
+                          {item.description}
+                        </div>
+                        <span className={styles.itemPayment}>
+                          {item.paymentMethod}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 통계 탭 */}
+        {activeTab === 'stats' && (
+          <div className={styles.tabContent}>
+            {items.length === 0 ? (
+              <p className={styles.emptyMessage}>이번달 지출 내역이 없습니다</p>
+            ) : (
+              <>
+                {/* 카테고리별 지출 */}
+                <div className={styles.statSection}>
+                  <h3 className={styles.statSectionTitle}>카테고리별 지출</h3>
+                  <div className={styles.statList}>
+                    {categoryStats.map(({ category, total, percent }) => (
+                      <div key={category} className={styles.statItem}>
+                        <div className={styles.statItemHeader}>
+                          <span className={styles.statLabel}>{category}</span>
+                          <div className={styles.statAmountGroup}>
+                            <span className={styles.statAmount}>
+                              {total.toLocaleString()}원
+                            </span>
+                            <span className={styles.statPercent}>
+                              {percent.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className={styles.barTrack}>
+                          <div
+                            className={styles.barFill}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 결제수단별 지출 */}
+                <div className={styles.statSection}>
+                  <h3 className={styles.statSectionTitle}>결제수단별 지출</h3>
+                  <div className={styles.statList}>
+                    {paymentStats.map(({ method, total, percent }) => (
+                      <div key={method} className={styles.statItem}>
+                        <div className={styles.statItemHeader}>
+                          <span className={styles.statLabel}>{method}</span>
+                          <div className={styles.statAmountGroup}>
+                            <span className={styles.statAmount}>
+                              {total.toLocaleString()}원
+                            </span>
+                            <span className={styles.statPercent}>
+                              {percent.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className={styles.barTrack}>
+                          <div
+                            className={`${styles.barFill} ${styles.barFillGreen}`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 작성자별 지출 */}
+                <div className={styles.statSection}>
+                  <h3 className={styles.statSectionTitle}>작성자별 지출</h3>
+                  <div className={styles.writerCards}>
+                    {writerStats.map(({ writer, total, percent }) => (
+                      <div key={writer} className={styles.writerCard}>
+                        <div className={styles.writerName}>{writer}</div>
+                        <div className={styles.writerAmount}>
+                          {total.toLocaleString()}원
+                        </div>
+                        <div className={styles.writerPercent}>
+                          {percent.toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 지출 TOP 5 일 */}
+                <div className={styles.statSection}>
+                  <h3 className={styles.statSectionTitle}>
+                    지출 많은 날 TOP 5
+                  </h3>
+                  <div className={styles.statList}>
+                    {dailyStats.map(({ date, total }, idx) => (
+                      <div key={date} className={styles.statItem}>
+                        <div className={styles.statItemHeader}>
+                          <span className={styles.statLabel}>
+                            <span className={styles.rankBadge}>#{idx + 1}</span>
+                            {formatDateDisplay(date)}
+                          </span>
+                          <span className={styles.statAmount}>
+                            {total.toLocaleString()}원
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 추가 탭 */}
+        {activeTab === 'add' && (
+          <div className={styles.tabContent}>
+            <div className={styles.addPanel}>
+              <form className={styles.addForm} onSubmit={handleSubmit}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="date">날짜*</label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="category">카테고리*</label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">선택하세요</option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="amount">금액*</label>
+                  <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleChange}
+                    placeholder="0"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="writer">작성자*</label>
+                  <input
+                    type="text"
+                    id="writer"
+                    name="writer"
+                    value={formData.writer}
+                    onChange={handleChange}
+                    placeholder="작성자"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="paymentMethod">결제수단</label>
+                  <input
+                    type="text"
+                    id="paymentMethod"
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleChange}
+                    placeholder="카카오페이, 신용카드 등"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="description">설명</label>
+                  <input
+                    type="text"
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="메모"
+                  />
+                </div>
+
+                <div className={styles.addFormButtonRow}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="large"
+                    fullWidth
+                    disabled={!isFormValid || isSaving || isDeleting}
+                  >
+                    {isSaving ? '저장 중...' : '저장하기'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
 
       {isBlockingLoad && (
@@ -511,9 +921,9 @@ export function LedgerPage({ user }: LedgerPageProps) {
 
       {/* 추가/상세 모달 */}
       <Modal
-        isOpen={showAddModal || selectedItem !== null}
+        isOpen={selectedItem !== null}
         onClose={handleCloseModal}
-        title={selectedItem ? '지출 상세' : '지출 추가'}
+        title="지출 상세"
         maxWidth="500px"
       >
         <form className={styles.modalForm} onSubmit={handleSubmit}>
@@ -575,14 +985,19 @@ export function LedgerPage({ user }: LedgerPageProps) {
 
           <div className={styles.formGroup}>
             <label htmlFor="paymentMethod">결제수단</label>
-            <input
-              type="text"
+            <select
               id="paymentMethod"
               name="paymentMethod"
               value={formData.paymentMethod}
               onChange={handleChange}
-              placeholder="결제수단을 입력하세요"
-            />
+            >
+              <option value="">선택하세요</option>
+              {PAYMENT_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className={styles.formGroup}>

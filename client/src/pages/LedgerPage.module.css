@@ -4,8 +4,9 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
   position: relative;
+  box-sizing: border-box;
 }
 
 .ledgerHeader {
@@ -355,5 +356,339 @@
   .submitButton {
     padding: 14px;
     font-size: 15px;
+  }
+}
+
+/* ===== 요약 카드 ===== */
+.summaryCard {
+  background: linear-gradient(135deg, #ffe0d0 0%, #fff9f5 100%);
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summarySubRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.summarySubLabel {
+  font-size: 12px;
+  color: #8b7355;
+}
+
+/* ===== 탭 네비게이션 ===== */
+.tabNav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: #f9f0ea;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #8b7355;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabBtnActive {
+  background: white;
+  color: #e8845a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== 탭 컨텐츠 ===== */
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* ===== 카테고리 필터 ===== */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filterSelectWrap {
+  position: relative;
+  width: 100%;
+}
+
+.filterSelect {
+  width: 100%;
+  min-width: 180px;
+  padding: 9px 12px;
+  padding-right: 146px;
+  font-size: 14px;
+  border: 2px solid #ffe0d0;
+  border-radius: 10px;
+  background: white;
+  color: #5d4e37;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filterInfo {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #9a7f6c;
+  white-space: nowrap;
+}
+
+.filterTotal {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e8845a;
+}
+
+@media (max-width: 420px) {
+  .filterSelect {
+    padding-right: 132px;
+    font-size: 13px;
+  }
+
+  .filterInfo {
+    right: 36px;
+    gap: 6px;
+    padding-left: 7px;
+    font-size: 11px;
+  }
+}
+
+/* ===== 통계 탭 ===== */
+.statSection {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1.5px solid #ffe0d0;
+}
+
+.statSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5d4e37;
+  margin: 0 0 14px 0;
+}
+
+.statList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.statItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #5d4e37;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statAmountGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statAmount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8845a;
+}
+
+.statPercent {
+  font-size: 12px;
+  color: #8b7355;
+  min-width: 42px;
+  text-align: right;
+}
+
+.barTrack {
+  width: 100%;
+  height: 6px;
+  background: #f3ede8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffb088, #e8845a);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.barFillGreen {
+  background: linear-gradient(90deg, #81d4a0, #4caf7d);
+}
+
+/* 작성자 카드 */
+.writerCards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.writerCard {
+  flex: 1;
+  min-width: 100px;
+  background: #fff9f5;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.writerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5d4e37;
+  margin-bottom: 6px;
+}
+
+.writerAmount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e8845a;
+  margin-bottom: 4px;
+}
+
+.writerPercent {
+  font-size: 12px;
+  color: #8b7355;
+}
+
+.rankBadge {
+  background: #ffb088;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.homeCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.homeCard {
+  background: #ffffff;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.homeCardLabel {
+  font-size: 12px;
+  color: #8b7355;
+  font-weight: 600;
+}
+
+.homeCardValue {
+  font-size: 17px;
+  color: #e8845a;
+  font-weight: 700;
+}
+
+.homeCardValueText {
+  font-size: 14px;
+  color: #5d4e37;
+  font-weight: 700;
+}
+
+.addPanel {
+  background: #ffffff;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.addForm .formGroup {
+  gap: 3px;
+}
+
+.addForm .formGroup label {
+  font-size: 11px;
+}
+
+.addForm .formGroup input,
+.addForm .formGroup select {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.addFormButtonRow {
+  /* margin-top은 space-between이 처리 */
+}
+
+@media (max-width: 560px) {
+  .homeCards {
+    grid-template-columns: 1fr;
   }
 }

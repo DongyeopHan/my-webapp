@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
-import { BiblePage } from './pages/BiblePage';
-import { StockPage } from './pages/StockPage';
-import { TodoListPage } from './pages/TodoListPage';
+// import { BiblePage } from './pages/BiblePage';
+// import { StockPage } from './pages/StockPage';
+// import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import type { User } from './types/user';
@@ -15,22 +15,26 @@ import {
   type LogoutEventDetail,
 } from './services/authStorage';
 
-type MenuItem = {
-  id: string;
-  label: string;
-};
+type PageType = 'home' | /* 'todo' | 'bible' | */ 'ledger' /* | 'stock' */;
+type ActiveTab = 'home' | 'list' | 'stats' | 'add';
 
-type PageType = 'home' | 'todo' | 'bible' | 'ledger' | 'stock';
+// const MENU_ITEMS: MenuItem[] = [
+//   { id: 'todo', label: '✅Todo List' },
+//   { id: 'bible', label: '📖성경통독' },
+//   { id: 'ledger', label: '📒가계부' },
+//   { id: 'stock', label: '📈주식' },
+// ];
 
-const MENU_ITEMS: MenuItem[] = [
-  { id: 'todo', label: '✅Todo List' },
-  { id: 'bible', label: '📖성경통독' },
-  { id: 'ledger', label: '📒가계부' },
-  { id: 'stock', label: '📈주식' },
+const TAB_ITEMS: { id: ActiveTab; label: string }[] = [
+  { id: 'home', label: '🏠 홈' },
+  { id: 'list', label: '📋 내역' },
+  { id: 'stats', label: '📊 통계' },
+  { id: 'add', label: '➕ 추가' },
 ];
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('home');
+  const [currentPage, setCurrentPage] = useState<PageType>('ledger');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [user, setUser] = useState<User | null>(() => getStoredUser());
   const [sessionNotice, setSessionNotice] = useState('');
 
@@ -64,26 +68,23 @@ function App() {
     };
   }, []);
 
-  const handleMenuClick = (id: string) => {
-    setCurrentPage(id as PageType);
-  };
-
   const handleHomeClick = () => {
-    setCurrentPage('home');
+    setCurrentPage('ledger');
+    setActiveTab('home');
   };
 
   const renderPage = () => {
     switch (currentPage) {
       case 'ledger':
-        return <LedgerPage user={user!} />;
-      case 'bible':
-        return <BiblePage user={user!} />;
-      case 'todo':
-        return <TodoListPage user={user!} />;
-      case 'stock':
-        return <StockPage />;
+        return <LedgerPage user={user!} activeTab={activeTab} />;
+      // case 'bible':
+      //   return <BiblePage user={user!} />;
+      // case 'todo':
+      //   return <TodoListPage user={user!} />;
+      // case 'stock':
+      //   return <StockPage />;
       default:
-        return <p className="app-main-placeholder">메뉴를 선택해주세요</p>;
+        return <LedgerPage user={user!} activeTab={activeTab} />;
     }
   };
 
@@ -113,13 +114,13 @@ function App() {
 
       <footer className="app-footer">
         <div className="menu-buttons">
-          {MENU_ITEMS.map((item) => (
+          {TAB_ITEMS.map((tab) => (
             <button
-              key={item.id}
-              className={`menu-button ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => handleMenuClick(item.id)}
+              key={tab.id}
+              className={`menu-button ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
             >
-              {item.label}
+              {tab.label}
             </button>
           ))}
         </div>
