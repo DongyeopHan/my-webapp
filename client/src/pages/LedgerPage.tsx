@@ -615,13 +615,13 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
 
   const previousMonthInsight = useMemo(() => {
     if (isLoadingPreviousMonth) {
-      return `지난달 ${comparisonDay}일 기준으로 비교 중입니다...`;
+      return `지난달의 오늘을 기준으로 비교 중입니다...`;
     }
     if (previousMonthComparableTotal <= 0) {
-      return `지난달 ${comparisonDay}일 기준 데이터가 없어요.`;
+      return `지난달의 오늘 기준 데이터가 없어요.`;
     }
     if (monthToDateDiff >= 0) {
-      return `지난달 ${comparisonDay}일 기준으로는 줄지 않았어요.`;
+      return `지난달의 오늘보다 ${Math.abs(monthToDateDiff).toLocaleString()}원 더 지출했어요`;
     }
 
     if (currentDayOfMonth > previousMonthDays) {

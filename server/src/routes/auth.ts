@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { signAccessToken } from '../config/auth.js';
+import { authenticate, type AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const buildAuthResponse = (user: {
   loginId: string;
   username?: string;
   name: string;
+  monthlyBudget?: number;
 }) => {
   const userId = String(user._id);
   const resolvedLoginId = user.loginId || user.username || '';
@@ -24,6 +26,7 @@ const buildAuthResponse = (user: {
     userId,
     loginId: resolvedLoginId,
     name: user.name,
+    monthlyBudget: user.monthlyBudget,
     accessToken: signAccessToken({
       userId,
       loginId: resolvedLoginId,
@@ -97,7 +100,7 @@ router.post('/login', async (req: Request, res: Response) => {
 // 회원가입
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { loginId, username, password, name } = req.body;
+    const { loginId, username, password, name, monthlyBudget } = req.body;
     const rawLoginId =
       typeof loginId === 'string'
         ? loginId
@@ -138,11 +141,18 @@ router.post('/signup', async (req: Request, res: Response) => {
 
     // 새 사용자 생성
     const hashedPassword = await bcrypt.hash(password, 10);
+    const parsedMonthlyBudget = Number(monthlyBudget);
+    const normalizedMonthlyBudget =
+      Number.isFinite(parsedMonthlyBudget) && parsedMonthlyBudget >= 0
+        ? parsedMonthlyBudget
+        : 3000000;
+
     const user = new User({
       loginId: normalizedLoginId,
       username: normalizedLoginId,
       password: hashedPassword,
       name: normalizedName,
+      monthlyBudget: normalizedMonthlyBudget,
     });
     await user.save();
 
@@ -150,6 +160,55 @@ router.post('/signup', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ message: '회원가입 중 오류가 발생했습니다' });
+  }
+});
+
+router.patch('/me', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { userId } = (req as AuthenticatedRequest).user;
+    const { name, monthlyBudget } = req.body;
+
+    const updatePayload: { name?: string; monthlyBudget?: number } = {};
+
+    if (name !== undefined) {
+      const normalizedName = String(name).trim();
+      if (!normalizedName) {
+        return res.status(400).json({ message: '이름은 비워둘 수 없습니다' });
+      }
+      updatePayload.name = normalizedName;
+    }
+
+    if (monthlyBudget !== undefined) {
+      const parsedMonthlyBudget = Number(monthlyBudget);
+      if (!Number.isFinite(parsedMonthlyBudget) || parsedMonthlyBudget < 0) {
+        return res
+          .status(400)
+          .json({ message: '월 예산은 0 이상의 숫자여야 합니다' });
+      }
+      updatePayload.monthlyBudget = parsedMonthlyBudget;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return res
+        .status(400)
+        .json({ message: '수정할 개인정보 항목이 없습니다' });
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updatePayload, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다' });
+    }
+
+    return res.json(buildAuthResponse(user));
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res
+      .status(500)
+      .json({ message: '개인정보 저장 중 오류가 발생했습니다' });
   }
 });
 

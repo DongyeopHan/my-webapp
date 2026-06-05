@@ -8,6 +8,7 @@ import { Modal } from './components/Modal';
 import { LoginPage } from './pages/LoginPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import type { User } from './types/user';
+import { authAPI } from './services/api';
 import {
   AUTH_LOGOUT_EVENT,
   clearStoredUser,
@@ -43,6 +44,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsName, setSettingsName] = useState('');
   const [settingsMonthlyBudget, setSettingsMonthlyBudget] = useState('');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const handleOpenSettings = () => {
     if (!user) {
@@ -53,7 +55,7 @@ function App() {
     setIsSettingsOpen(true);
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     if (!user) {
       return;
     }
@@ -64,14 +66,20 @@ function App() {
       return;
     }
 
-    const updatedUser: User = {
-      ...user,
-      name: trimmedName,
-      monthlyBudget: parsedBudget,
-    };
-    setUser(updatedUser);
-    setStoredUser(updatedUser);
-    setIsSettingsOpen(false);
+    try {
+      setIsSavingSettings(true);
+      const updatedUser = await authAPI.updateProfile({
+        name: trimmedName,
+        monthlyBudget: parsedBudget,
+      });
+      setUser(updatedUser);
+      setStoredUser(updatedUser);
+      setIsSettingsOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const handleLogin = (loggedInUser: User) => {
@@ -207,8 +215,9 @@ function App() {
               type="button"
               className="settings-save"
               onClick={handleSaveSettings}
+              disabled={isSavingSettings}
             >
-              저장
+              {isSavingSettings ? '저장 중...' : '저장'}
             </button>
           </div>
           <button

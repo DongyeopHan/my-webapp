@@ -98,6 +98,17 @@ export const authAPI = {
       body: { loginId, password, name },
     });
   },
+
+  updateProfile: async (payload: {
+    name?: string;
+    monthlyBudget?: number;
+  }): Promise<User> => {
+    return requestJson<User>('/auth/me', '개인정보 저장 실패', {
+      method: 'PATCH',
+      body: payload,
+      requiresAuth: true,
+    });
+  },
 };
 
 export const bibleAPI = {
