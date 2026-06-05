@@ -20,6 +20,14 @@
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.modalContent::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .modalHeader {

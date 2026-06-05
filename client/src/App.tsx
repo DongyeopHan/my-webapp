@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
+import { Modal } from './components/Modal';
 // import { BiblePage } from './pages/BiblePage';
 // import { StockPage } from './pages/StockPage';
 // import { TodoListPage } from './pages/TodoListPage';
@@ -39,6 +40,39 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [user, setUser] = useState<User | null>(initialStoredUser);
   const [sessionNotice, setSessionNotice] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsName, setSettingsName] = useState('');
+  const [settingsMonthlyBudget, setSettingsMonthlyBudget] = useState('');
+
+  const handleOpenSettings = () => {
+    if (!user) {
+      return;
+    }
+    setSettingsName(user.name);
+    setSettingsMonthlyBudget(String(user.monthlyBudget ?? 3000000));
+    setIsSettingsOpen(true);
+  };
+
+  const handleSaveSettings = () => {
+    if (!user) {
+      return;
+    }
+
+    const trimmedName = settingsName.trim();
+    const parsedBudget = Number(settingsMonthlyBudget);
+    if (!trimmedName || !Number.isFinite(parsedBudget) || parsedBudget <= 0) {
+      return;
+    }
+
+    const updatedUser: User = {
+      ...user,
+      name: trimmedName,
+      monthlyBudget: parsedBudget,
+    };
+    setUser(updatedUser);
+    setStoredUser(updatedUser);
+    setIsSettingsOpen(false);
+  };
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -100,13 +134,18 @@ function App() {
       <OfflineIndicator />
       <header className="app-header">
         <h1 className="app-title" onClick={handleHomeClick}>
-          동희부부's 앱
+          동희부부's 가계부
         </h1>
         {user && (
           <div className="user-info">
             <span className="username">{user.name}님</span>
-            <button className="logout-button" onClick={handleLogout}>
-              로그아웃
+            <button
+              className="settings-button"
+              onClick={handleOpenSettings}
+              aria-label="개인정보 설정"
+              title="개인정보 설정"
+            >
+              ⚙
             </button>
           </div>
         )}
@@ -127,6 +166,63 @@ function App() {
           ))}
         </div>
       </footer>
+
+      <Modal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="개인정보 설정"
+        maxWidth="420px"
+      >
+        <div className="settings-form">
+          <div className="settings-form-group">
+            <label htmlFor="settings-name">이름</label>
+            <input
+              id="settings-name"
+              type="text"
+              value={settingsName}
+              onChange={(e) => setSettingsName(e.target.value)}
+              placeholder="이름"
+            />
+          </div>
+          <div className="settings-form-group">
+            <label htmlFor="settings-budget">월 예산</label>
+            <input
+              id="settings-budget"
+              type="number"
+              min="0"
+              value={settingsMonthlyBudget}
+              onChange={(e) => setSettingsMonthlyBudget(e.target.value)}
+              placeholder="월 예산"
+            />
+          </div>
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="settings-cancel"
+              onClick={() => setIsSettingsOpen(false)}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="settings-save"
+              onClick={handleSaveSettings}
+            >
+              저장
+            </button>
+          </div>
+          <button
+            type="button"
+            className="settings-logout"
+            onClick={() => {
+              setIsSettingsOpen(false);
+              handleLogout();
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

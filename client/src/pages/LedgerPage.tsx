@@ -63,15 +63,6 @@ const CATEGORIES = [
   '여행',
 ];
 
-const PAYMENT_METHODS = [
-  '카카오페이',
-  '신용카드',
-  '체크카드',
-  '현금',
-  '계좌이체',
-  '네이버페이',
-];
-
 const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
 const ITEMS_CACHE_TTL_MS = 1000 * 60 * 5;
 
@@ -108,6 +99,38 @@ const invalidateItemsCache = (month: string) => {
   localStorage.removeItem(getItemsCacheKey(month));
 };
 
+const getPreviousMonth = (month: string): string => {
+  const [year, m] = month.split('-').map(Number);
+  const date = new Date(year, m - 2, 1);
+  const prevYear = date.getFullYear();
+  const prevMonth = String(date.getMonth() + 1).padStart(2, '0');
+  return `${prevYear}-${prevMonth}`;
+};
+
+const getDaysInMonth = (month: string): number => {
+  const [year, m] = month.split('-').map(Number);
+  return new Date(year, m, 0).getDate();
+};
+
+const normalizeLedgerItems = (items: LedgerItem[]): LedgerItem[] => {
+  return items
+    .filter((item) => {
+      return (
+        item.date &&
+        item.category &&
+        item.amount &&
+        !isNaN(item.amount) &&
+        item.amount > 0
+      );
+    })
+    .map((item) => ({
+      ...item,
+      writer: item.writer || '미지정',
+      description: item.description || '',
+      paymentMethod: item.paymentMethod || '',
+    }));
+};
+
 const createInitialFormData = (writer: string): LedgerFormData => ({
   date: getToday(),
   category: '',
@@ -123,6 +146,12 @@ type LedgerPageProps = {
 };
 
 export function LedgerPage({ user, activeTab }: LedgerPageProps) {
+  const currentMonth = getCurrentMonth();
+  const previousMonth = getPreviousMonth(currentMonth);
+  const today = new Date();
+  const currentDayOfMonth = today.getDate();
+  const previousMonthDays = getDaysInMonth(previousMonth);
+  const comparisonDay = Math.min(currentDayOfMonth, previousMonthDays);
   const [filterCategory, setFilterCategory] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [monthOptions, setMonthOptions] = useState<string[]>(() => [
@@ -139,6 +168,10 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [previousMonthTotal, setPreviousMonthTotal] = useState(0);
+  const [previousMonthComparableTotal, setPreviousMonthComparableTotal] =
+    useState(0);
+  const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
   const [submitModal, setSubmitModal] = useState<{
     isOpen: boolean;
     message: string;
@@ -206,23 +239,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       }
 
       if (result.result === 'success') {
-        // 유효한 데이터만 필터링 (NaN, null, undefined 제외)
-        const validItems = (result.items || []).filter((item: LedgerItem) => {
-          return (
-            item.date &&
-            item.category &&
-            item.amount &&
-            !isNaN(item.amount) &&
-            item.amount > 0
-          );
-        });
-
-        const normalizedItems = validItems.map((item: LedgerItem) => ({
-          ...item,
-          writer: item.writer || '미지정',
-          description: item.description || '',
-          paymentMethod: item.paymentMethod || '',
-        }));
+        const normalizedItems = normalizeLedgerItems(result.items || []);
 
         setItems(normalizedItems);
         writeItemsCache(month, normalizedItems);
@@ -242,6 +259,44 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     }
   }, []);
 
+  const loadMonthTotal = useCallback(
+    async (month: string, upToDay?: number): Promise<number> => {
+      try {
+        const cached = readItemsCache(month);
+        const isWithinRange = (dateStr: string) => {
+          if (upToDay === undefined) {
+            return true;
+          }
+          const date = new Date(dateStr);
+          return !Number.isNaN(date.getTime()) && date.getDate() <= upToDay;
+        };
+
+        if (cached) {
+          return cached.reduce(
+            (sum, item) => sum + (isWithinRange(item.date) ? item.amount : 0),
+            0,
+          );
+        }
+
+        const response = await fetch(`${GOOGLE_SHEET_URL}?month=${month}`);
+        const result = await response.json();
+        if (result.result !== 'success') {
+          return 0;
+        }
+
+        const normalizedItems = normalizeLedgerItems(result.items || []);
+        writeItemsCache(month, normalizedItems);
+        return normalizedItems.reduce(
+          (sum, item) => sum + (isWithinRange(item.date) ? item.amount : 0),
+          0,
+        );
+      } catch {
+        return 0;
+      }
+    },
+    [],
+  );
+
   // ✅ 초기 마운트: 월 옵션과 현재 월 데이터를 병렬로 로드
   useEffect(() => {
     const currentMonth = getCurrentMonth();
@@ -255,22 +310,59 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     });
   }, [loadMonthOptions, loadItems]);
 
-  // ✅ 월 선택 변경: 해당 월의 데이터 로드
+  // ✅ 탭/월 변경: 홈은 항상 현재월, 나머지는 선택 월
   useEffect(() => {
     if (!isMonthOptionsLoaded) {
       return;
     }
-    if (monthOptions.length > 0) {
-      if (lastLoadedMonthRef.current === selectedMonth) {
-        return;
-      }
-      lastLoadedMonthRef.current = selectedMonth;
-
-      // 캐시가 있으면 중복 로드 방지하면서 백그라운드에서 새로고침
-      setIsBlockingLoad(false);
-      loadItems(selectedMonth);
+    if (monthOptions.length === 0) {
+      return;
     }
-  }, [selectedMonth, monthOptions, loadItems, isMonthOptionsLoaded]);
+
+    const targetMonth = activeTab === 'home' ? currentMonth : selectedMonth;
+    if (lastLoadedMonthRef.current === targetMonth) {
+      return;
+    }
+
+    lastLoadedMonthRef.current = targetMonth;
+    setIsBlockingLoad(false);
+    loadItems(targetMonth);
+  }, [
+    activeTab,
+    currentMonth,
+    selectedMonth,
+    monthOptions,
+    loadItems,
+    isMonthOptionsLoaded,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== 'home') {
+      return;
+    }
+
+    let isCancelled = false;
+    setIsLoadingPreviousMonth(true);
+    Promise.all([
+      loadMonthTotal(previousMonth),
+      loadMonthTotal(previousMonth, comparisonDay),
+    ])
+      .then(([total, comparableTotal]) => {
+        if (!isCancelled) {
+          setPreviousMonthTotal(total);
+          setPreviousMonthComparableTotal(comparableTotal);
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingPreviousMonth(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTab, previousMonth, comparisonDay, loadMonthTotal]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -460,24 +552,91 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       .sort((a, b) => b.total - a.total);
   }, [items, totalAmount]);
 
-  const topCategory = categoryStats[0];
-  const recentItems = useMemo(() => items.slice(0, 5), [items]);
+  const currentMonthToDateTotal = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const date = new Date(item.date);
+      if (Number.isNaN(date.getTime())) {
+        return sum;
+      }
+      return date.getDate() <= currentDayOfMonth ? sum + item.amount : sum;
+    }, 0);
+  }, [items, currentDayOfMonth]);
 
-  // 결제수단별 통계
-  const paymentStats = useMemo(() => {
-    const map = new Map<string, number>();
+  const monthDiff = totalAmount - previousMonthTotal;
+  const monthDiffRate =
+    previousMonthTotal > 0 ? (monthDiff / previousMonthTotal) * 100 : 0;
+  const monthToDateDiff =
+    currentMonthToDateTotal - previousMonthComparableTotal;
+  const monthlyBudget =
+    user.monthlyBudget && user.monthlyBudget > 0 ? user.monthlyBudget : 3000000;
+  const budgetUsageRate =
+    monthlyBudget > 0 ? Math.min((totalAmount / monthlyBudget) * 100, 999) : 0;
+  const budgetRemaining = monthlyBudget - totalAmount;
+
+  const todayAndWeekSpending = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const day = startOfToday.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfToday.getDate() - diffToMonday);
+
+    let todayAmount = 0;
+    let weekAmount = 0;
+
     for (const item of items) {
-      const key = item.paymentMethod || '미지정';
-      map.set(key, (map.get(key) ?? 0) + item.amount);
+      const date = new Date(item.date);
+      if (Number.isNaN(date.getTime())) {
+        continue;
+      }
+      const normalizedDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+      );
+
+      if (normalizedDate.getTime() === startOfToday.getTime()) {
+        todayAmount += item.amount;
+      }
+      if (
+        normalizedDate.getTime() >= startOfWeek.getTime() &&
+        normalizedDate.getTime() <= startOfToday.getTime()
+      ) {
+        weekAmount += item.amount;
+      }
     }
-    return Array.from(map.entries())
-      .map(([method, total]) => ({
-        method,
-        total,
-        percent: totalAmount > 0 ? (total / totalAmount) * 100 : 0,
-      }))
-      .sort((a, b) => b.total - a.total);
-  }, [items, totalAmount]);
+
+    return { todayAmount, weekAmount };
+  }, [items]);
+
+  const previousMonthInsight = useMemo(() => {
+    if (isLoadingPreviousMonth) {
+      return `지난달 ${comparisonDay}일 기준으로 비교 중입니다...`;
+    }
+    if (previousMonthComparableTotal <= 0) {
+      return `지난달 ${comparisonDay}일 기준 데이터가 없어요.`;
+    }
+    if (monthToDateDiff >= 0) {
+      return `지난달 ${comparisonDay}일 기준으로는 줄지 않았어요.`;
+    }
+
+    if (currentDayOfMonth > previousMonthDays) {
+      return `지난달은 ${previousMonthDays}일까지라 이후 ${currentDayOfMonth - previousMonthDays}일은 함께 반영했어요.`;
+    }
+
+    return `지난 달의 오늘보다 ${Math.abs(monthToDateDiff).toLocaleString()}원 절약했어요.`;
+  }, [
+    isLoadingPreviousMonth,
+    previousMonthComparableTotal,
+    monthToDateDiff,
+    comparisonDay,
+    currentDayOfMonth,
+    previousMonthDays,
+  ]);
 
   // 작성자별 통계
   const writerStats = useMemo(() => {
@@ -494,18 +653,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       .sort((a, b) => b.total - a.total);
   }, [items, totalAmount]);
 
-  // 일별 지출 통계 (상위 5일)
-  const dailyStats = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const item of items) {
-      map.set(item.date, (map.get(item.date) ?? 0) + item.amount);
-    }
-    return Array.from(map.entries())
-      .map(([date, total]) => ({ date, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-  }, [items]);
-
   return (
     <div className={styles.ledgerPage}>
       {/* <div className={styles.ledgerHeader}>
@@ -514,7 +661,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
 
       <div className={styles.ledgerMain}>
         {/* 월 선택 */}
-        {activeTab !== 'add' && (
+        {(activeTab === 'list' || activeTab === 'stats') && (
           <div className={styles.monthSelector}>
             <select
               value={selectedMonth}
@@ -534,10 +681,9 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
         {/* 홈 탭 */}
         {activeTab === 'home' && (
           <div className={styles.tabContent}>
-            {/* 요약 카드 */}
             <div className={styles.summaryCard}>
               <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>총 지출</span>
+                <span className={styles.summaryLabel}>이번달 총 지출</span>
                 <span className={styles.summaryAmount}>
                   {totalAmount.toLocaleString()}원
                 </span>
@@ -555,59 +701,43 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
                 )}
               </div>
             </div>
-            <div className={styles.homeCards}>
-              {/* <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>총 지출</span>
-                <strong className={styles.homeCardValue}>
-                  {totalAmount.toLocaleString()}원
-                </strong>
-              </div>
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>총 건수</span>
-                <strong className={styles.homeCardValue}>
-                  {items.length}건
-                </strong>
-              </div>
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>건당 평균</span>
-                <strong className={styles.homeCardValue}>
-                  {averageAmount.toLocaleString()}원
-                </strong>
-              </div> */}
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>최대 지출 카테고리</span>
-                <strong className={styles.homeCardValueText}>
-                  {topCategory
-                    ? `${topCategory.category} (${topCategory.percent.toFixed(1)}%)`
-                    : '-'}
-                </strong>
-              </div>
-            </div>
 
-            <div className={styles.statSection}>
-              <h3 className={styles.statSectionTitle}>최근 지출 5건</h3>
-              <div className={styles.statList}>
-                {recentItems.length === 0 ? (
-                  <p className={styles.emptyMessage}>
-                    이번달 지출 내역이 없습니다
-                  </p>
-                ) : (
-                  recentItems.map((item, idx) => (
-                    <div
-                      key={`${item.date}-${item.row ?? idx}`}
-                      className={styles.statItem}
-                    >
-                      <div className={styles.statItemHeader}>
-                        <span className={styles.statLabel}>
-                          {formatDateDisplay(item.date)} · {item.category}
-                        </span>
-                        <span className={styles.statAmount}>
-                          {item.amount.toLocaleString()}원
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
+            <div className={styles.homeCards}>
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>지난달 지출 비교</span>
+                <strong className={styles.homeCardValue}>
+                  {`${monthDiff >= 0 ? '+' : '-'}${Math.abs(monthDiff).toLocaleString()}원 (${monthDiffRate >= 0 ? '+' : ''}${monthDiffRate.toFixed(1)}%)`}
+                </strong>
+                <span className={styles.homeCardValueText}>
+                  {previousMonthInsight}
+                </span>
+              </div>
+
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>오늘/이번주 지출</span>
+                <strong className={styles.homeCardValue}>
+                  오늘 {todayAndWeekSpending.todayAmount.toLocaleString()}원
+                </strong>
+                <span className={styles.homeCardValueText}>
+                  이번주 {todayAndWeekSpending.weekAmount.toLocaleString()}원
+                </span>
+              </div>
+
+              <div className={styles.homeCard}>
+                <span className={styles.homeCardLabel}>월 예산 진행률</span>
+                <strong className={styles.homeCardValue}>
+                  {budgetUsageRate.toFixed(1)}%
+                </strong>
+                <div className={styles.homeProgressTrack}>
+                  <div
+                    className={styles.homeProgressFill}
+                    style={{ width: `${Math.min(budgetUsageRate, 100)}%` }}
+                  />
+                </div>
+                <span className={styles.homeCardValueText}>
+                  예산 {monthlyBudget.toLocaleString()}원 / 잔여{' '}
+                  {budgetRemaining.toLocaleString()}원
+                </span>
               </div>
             </div>
           </div>
@@ -688,6 +818,27 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
         {/* 통계 탭 */}
         {activeTab === 'stats' && (
           <div className={styles.tabContent}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>총 지출</span>
+                <span className={styles.summaryAmount}>
+                  {totalAmount.toLocaleString()}원
+                </span>
+              </div>
+              <div className={styles.summarySubRow}>
+                <span className={styles.summarySubLabel}>
+                  총 {items.length}건
+                </span>
+                {items.length > 0 && (
+                  <span className={styles.summarySubLabel}>
+                    평균{' '}
+                    {Math.round(totalAmount / items.length).toLocaleString()}
+                    원/건
+                  </span>
+                )}
+              </div>
+            </div>
+
             {items.length === 0 ? (
               <p className={styles.emptyMessage}>이번달 지출 내역이 없습니다</p>
             ) : (
@@ -720,34 +871,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
                   </div>
                 </div>
 
-                {/* 결제수단별 지출 */}
-                <div className={styles.statSection}>
-                  <h3 className={styles.statSectionTitle}>결제수단별 지출</h3>
-                  <div className={styles.statList}>
-                    {paymentStats.map(({ method, total, percent }) => (
-                      <div key={method} className={styles.statItem}>
-                        <div className={styles.statItemHeader}>
-                          <span className={styles.statLabel}>{method}</span>
-                          <div className={styles.statAmountGroup}>
-                            <span className={styles.statAmount}>
-                              {total.toLocaleString()}원
-                            </span>
-                            <span className={styles.statPercent}>
-                              {percent.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className={styles.barTrack}>
-                          <div
-                            className={`${styles.barFill} ${styles.barFillGreen}`}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* 작성자별 지출 */}
                 <div className={styles.statSection}>
                   <h3 className={styles.statSectionTitle}>작성자별 지출</h3>
@@ -760,28 +883,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
                         </div>
                         <div className={styles.writerPercent}>
                           {percent.toFixed(1)}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 지출 TOP 5 일 */}
-                <div className={styles.statSection}>
-                  <h3 className={styles.statSectionTitle}>
-                    지출 많은 날 TOP 5
-                  </h3>
-                  <div className={styles.statList}>
-                    {dailyStats.map(({ date, total }, idx) => (
-                      <div key={date} className={styles.statItem}>
-                        <div className={styles.statItemHeader}>
-                          <span className={styles.statLabel}>
-                            <span className={styles.rankBadge}>#{idx + 1}</span>
-                            {formatDateDisplay(date)}
-                          </span>
-                          <span className={styles.statAmount}>
-                            {total.toLocaleString()}원
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -971,19 +1072,14 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
 
           <div className={styles.formGroup}>
             <label htmlFor="paymentMethod">결제수단</label>
-            <select
+            <input
+              type="text"
               id="paymentMethod"
               name="paymentMethod"
               value={formData.paymentMethod}
               onChange={handleChange}
-            >
-              <option value="">선택하세요</option>
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              placeholder="카카오페이, 신용카드 등"
+            />
           </div>
 
           <div className={styles.formGroup}>
