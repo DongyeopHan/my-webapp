@@ -6,7 +6,10 @@ import type {
   StockSearchResponse,
   StockWatchlistResponse,
 } from '../types/stock';
-import type { Todo } from '../types/todo';
+import type {
+  CreateShoppingPricePayload,
+  ShoppingPriceListResponse,
+} from '../types/shopping';
 
 const API_URL = MONGODB_API_BASE_URL;
 const SESSION_EXPIRED_MESSAGE =
@@ -111,84 +114,6 @@ export const authAPI = {
   },
 };
 
-export const bibleAPI = {
-  getProgress: async (): Promise<Record<string, number[]>> => {
-    return requestJson<Record<string, number[]>>(
-      '/scripture/me',
-      '진행상황 조회 실패',
-      {
-        requiresAuth: true,
-      },
-    );
-  },
-
-  saveProgress: async (
-    bookName: string,
-    readChapters: number[],
-  ): Promise<Record<string, unknown>> => {
-    return requestJson<Record<string, unknown>>(
-      '/scripture/me',
-      '진행상황 저장 실패',
-      {
-        method: 'POST',
-        body: { bookName, readChapters },
-        requiresAuth: true,
-      },
-    );
-  },
-};
-
-export const todoAPI = {
-  getTodos: async (): Promise<Todo[]> => {
-    return requestJson<Todo[]>('/todo/me', 'Todo 목록 조회 실패', {
-      requiresAuth: true,
-    });
-  },
-
-  createTodo: async (
-    title: string,
-    time: string,
-    content: string,
-  ): Promise<Todo> => {
-    return requestJson<Todo>('/todo/me', 'Todo 생성 실패', {
-      method: 'POST',
-      body: { title, time, content },
-      requiresAuth: true,
-    });
-  },
-
-  toggleTodo: async (todoId: string): Promise<Todo> => {
-    return requestJson<Todo>(`/todo/${todoId}/toggle`, 'Todo 상태 변경 실패', {
-      method: 'PATCH',
-      requiresAuth: true,
-    });
-  },
-
-  updateTodo: async (
-    todoId: string,
-    title: string,
-    time: string,
-    content: string,
-  ): Promise<Todo> => {
-    return requestJson<Todo>(`/todo/${todoId}`, 'Todo 수정 실패', {
-      method: 'PUT',
-      body: { title, time, content },
-      requiresAuth: true,
-    });
-  },
-
-  deleteTodo: async (todoId: string): Promise<{ message: string }> => {
-    return requestJson<{ message: string }>(
-      `/todo/${todoId}`,
-      'Todo 삭제 실패',
-      {
-        method: 'DELETE',
-        requiresAuth: true,
-      },
-    );
-  },
-};
-
 export const stockAPI = {
   getQuotes: async (codes?: string[]): Promise<StockQuoteResponse> => {
     const params = new URLSearchParams();
@@ -234,6 +159,101 @@ export const stockAPI = {
       {
         method: 'PUT',
         body: { codes },
+        requiresAuth: true,
+      },
+    );
+  },
+};
+
+export const shoppingAPI = {
+  getPrices: async (): Promise<ShoppingPriceListResponse> => {
+    return requestJson<ShoppingPriceListResponse>(
+      '/shopping/prices',
+      '장보기 시세 조회 실패',
+      {
+        requiresAuth: true,
+      },
+    );
+  },
+
+  addPrice: async (
+    payload: CreateShoppingPricePayload,
+  ): Promise<{ item: unknown }> => {
+    return requestJson<{ item: unknown }>(
+      '/shopping/prices',
+      '시세 등록 실패',
+      {
+        method: 'POST',
+        body: payload,
+        requiresAuth: true,
+      },
+    );
+  },
+
+  addItem: async (payload: {
+    product: string;
+    unit: string;
+  }): Promise<{ item: unknown }> => {
+    return requestJson<{ item: unknown }>('/shopping/items', '품목 생성 실패', {
+      method: 'POST',
+      body: payload,
+      requiresAuth: true,
+    });
+  },
+
+  updatePrice: async (
+    priceId: string,
+    payload: { martName?: string; price?: number },
+  ): Promise<{ item: unknown }> => {
+    return requestJson<{ item: unknown }>(
+      `/shopping/prices/${priceId}`,
+      '시세 수정 실패',
+      {
+        method: 'PATCH',
+        body: payload,
+        requiresAuth: true,
+      },
+    );
+  },
+
+  deletePrice: async (priceId: string): Promise<{ message: string }> => {
+    return requestJson<{ message: string }>(
+      `/shopping/prices/${priceId}`,
+      '시세 삭제 실패',
+      {
+        method: 'DELETE',
+        requiresAuth: true,
+      },
+    );
+  },
+
+  updateItem: async (payload: {
+    product: string;
+    unit: string;
+    nextProduct: string;
+    nextUnit: string;
+  }): Promise<{ message: string }> => {
+    return requestJson<{ message: string }>(
+      '/shopping/items',
+      '품목 수정 실패',
+      {
+        method: 'PATCH',
+        body: payload,
+        requiresAuth: true,
+      },
+    );
+  },
+
+  deleteItem: async (payload: {
+    product: string;
+    unit: string;
+  }): Promise<{ message: string }> => {
+    return requestJson<{ message: string }>(
+      '/shopping/items',
+      '품목 삭제 실패',
+      {
+        method: 'DELETE',
+        body: payload,
         requiresAuth: true,
       },
     );

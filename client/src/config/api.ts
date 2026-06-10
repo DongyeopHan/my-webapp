@@ -8,6 +8,6 @@ export const GOOGLE_SHEET_URL =
   import.meta.env.VITE_GOOGLE_SHEET_URL ||
   'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-// MongoDB API Base URL (Todo, Bible)
+// MongoDB API Base URL
 export const MONGODB_API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:4000/api';

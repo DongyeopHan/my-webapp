@@ -12,7 +12,13 @@ import {
   formatDateDisplay,
 } from '../utils/dateUtils';
 import { GOOGLE_SHEET_URL } from '../config/api';
+import { shoppingAPI } from '../services/api';
+import type { ShoppingPriceItem } from '../types/shopping';
 import type { User } from '../types/user';
+import { LedgerHomeTabPage } from './ledger/LedgerHomeTabPage';
+import { LedgerListTabPage } from './ledger/LedgerListTabPage';
+import { LedgerShoppingTabPage } from './ledger/LedgerShoppingTabPage';
+import { LedgerAddTabPage } from './ledger/LedgerAddTabPage';
 
 type LedgerItem = {
   date: string;
@@ -38,7 +44,29 @@ type CachedLedgerItems = {
   items: LedgerItem[];
 };
 
-type ActiveTab = 'home' | 'list' | 'stats' | 'add';
+type ActiveTab = 'home' | 'list' | 'shopping' | 'add';
+type ListViewTab = 'history' | 'stats';
+
+type ShoppingComparisonRow = {
+  product: string;
+  unit: string;
+  prices: ShoppingPriceItem['prices'];
+};
+
+type ShoppingNewMartFormData = {
+  martName: string;
+  price: string;
+};
+
+type ShoppingNewItemFormData = {
+  product: string;
+  unit: string;
+};
+
+type ShoppingItemEditFormData = {
+  product: string;
+  unit: string;
+};
 
 const CATEGORIES = [
   '대출',
@@ -65,6 +93,46 @@ const CATEGORIES = [
 
 const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
 const ITEMS_CACHE_TTL_MS = 1000 * 60 * 5;
+
+const createInitialNewMartFormData = (): ShoppingNewMartFormData => ({
+  martName: '',
+  price: '',
+});
+
+const createInitialNewItemFormData = (): ShoppingNewItemFormData => ({
+  product: '',
+  unit: '',
+});
+
+const createInitialShoppingItemEditFormData = (): ShoppingItemEditFormData => ({
+  product: '',
+  unit: '',
+});
+
+const formatShoppingUpdatedDate = (value: string): string => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const toComparisonRow = (item: ShoppingPriceItem): ShoppingComparisonRow | null => {
+  if (!item.prices.length) {
+    return null;
+  }
+
+  const sortedPrices = [...item.prices].sort((a, b) => a.price - b.price);
+
+  return {
+    ...item,
+    prices: sortedPrices,
+  };
+};
 
 const getItemsCacheKey = (month: string) => `${ITEMS_CACHE_PREFIX}${month}`;
 
@@ -172,6 +240,48 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
   const [previousMonthComparableTotal, setPreviousMonthComparableTotal] =
     useState(0);
   const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
+  const [listViewTab, setListViewTab] = useState<ListViewTab>('history');
+  const [shoppingItems, setShoppingItems] = useState<ShoppingPriceItem[]>([]);
+  const [shoppingSearchQuery, setShoppingSearchQuery] = useState('');
+  const [selectedShoppingRow, setSelectedShoppingRow] =
+    useState<ShoppingComparisonRow | null>(null);
+  const [shoppingPriceEdits, setShoppingPriceEdits] = useState<
+    Record<string, { martName: string; price: string }>
+  >({});
+  const [shoppingNewMartFormData, setShoppingNewMartFormData] =
+    useState<ShoppingNewMartFormData>(() => createInitialNewMartFormData());
+  const [shoppingNewItemFormData, setShoppingNewItemFormData] =
+    useState<ShoppingNewItemFormData>(() => createInitialNewItemFormData());
+  const [shoppingItemEditFormData, setShoppingItemEditFormData] =
+    useState<ShoppingItemEditFormData>(() =>
+      createInitialShoppingItemEditFormData(),
+    );
+  const [isShoppingNewItemModalOpen, setIsShoppingNewItemModalOpen] =
+    useState(false);
+  const [isLoadingShopping, setIsLoadingShopping] = useState(false);
+  const [isSavingShopping, setIsSavingShopping] = useState(false);
+  const [isSavingShoppingItem, setIsSavingShoppingItem] = useState(false);
+  const [savingShoppingPriceId, setSavingShoppingPriceId] = useState<
+    string | null
+  >(null);
+  const [shoppingDeleteConfirm, setShoppingDeleteConfirm] = useState<{
+    isOpen: boolean;
+    priceId: string;
+    martName: string;
+  }>({
+    isOpen: false,
+    priceId: '',
+    martName: '',
+  });
+  const [shoppingItemDeleteConfirm, setShoppingItemDeleteConfirm] = useState<{
+    isOpen: boolean;
+    product: string;
+    unit: string;
+  }>({
+    isOpen: false,
+    product: '',
+    unit: '',
+  });
   const [submitModal, setSubmitModal] = useState<{
     isOpen: boolean;
     message: string;
@@ -364,11 +474,357 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     };
   }, [activeTab, previousMonth, comparisonDay, loadMonthTotal]);
 
+  const loadShoppingItems = useCallback(async (): Promise<ShoppingPriceItem[]> => {
+    try {
+      setIsLoadingShopping(true);
+      const result = await shoppingAPI.getPrices();
+      const nextItems = result.items ?? [];
+      setShoppingItems(nextItems);
+      return nextItems;
+    } catch (error) {
+      console.error('장보기 시세 불러오기 실패:', error);
+      return [];
+    } finally {
+      setIsLoadingShopping(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'shopping') {
+      return;
+    }
+
+    loadShoppingItems();
+  }, [activeTab, loadShoppingItems]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleShoppingPriceEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, dataset } = e.target;
+    const priceId = dataset.priceId;
+
+    if (!priceId) {
+      return;
+    }
+
+    setShoppingPriceEdits((prev) => ({
+      ...prev,
+      [priceId]: {
+        martName:
+          name === 'martName' ? value : (prev[priceId]?.martName ?? ''),
+        price: name === 'price' ? value : (prev[priceId]?.price ?? ''),
+      },
+    }));
+  };
+
+  const handleShoppingNewMartFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setShoppingNewMartFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleOpenShoppingDetail = (row: ShoppingComparisonRow) => {
+    const editMap: Record<string, { martName: string; price: string }> = {};
+
+    for (const priceInfo of row.prices) {
+      editMap[priceInfo.id] = {
+        martName: priceInfo.martName,
+        price: String(priceInfo.price),
+      };
+    }
+
+    setShoppingPriceEdits(editMap);
+    setShoppingNewMartFormData({
+      martName: '',
+      price: '',
+    });
+    setShoppingItemEditFormData({
+      product: row.product,
+      unit: row.unit,
+    });
+    setSelectedShoppingRow(row);
+  };
+
+  const handleCloseShoppingDetail = () => {
+    setSelectedShoppingRow(null);
+    setShoppingPriceEdits({});
+    setShoppingNewMartFormData(createInitialNewMartFormData());
+    setShoppingItemEditFormData(createInitialShoppingItemEditFormData());
+    setSavingShoppingPriceId(null);
+    setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
+  };
+
+  const handleShoppingNewItemFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setShoppingNewItemFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleOpenShoppingNewItemModal = () => {
+    setShoppingNewItemFormData(createInitialNewItemFormData());
+    setIsShoppingNewItemModalOpen(true);
+  };
+
+  const handleCloseShoppingNewItemModal = () => {
+    setIsShoppingNewItemModalOpen(false);
+  };
+
+  const handleShoppingItemEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { name, value } = e.target;
+    setShoppingItemEditFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const syncDetailRow = (
+    items: ShoppingPriceItem[],
+    product: string,
+    unit: string,
+  ) => {
+    const matched = items.find(
+      (item) => item.product === product && item.unit === unit,
+    );
+    if (!matched) {
+      setSelectedShoppingRow(null);
+      return;
+    }
+
+    const next = toComparisonRow(matched);
+    if (!next) {
+      setSelectedShoppingRow(null);
+      return;
+    }
+
+    setSelectedShoppingRow(next);
+    setShoppingItemEditFormData({
+      product: next.product,
+      unit: next.unit,
+    });
+
+    const editMap: Record<string, { martName: string; price: string }> = {};
+    for (const priceInfo of next.prices) {
+      editMap[priceInfo.id] = {
+        martName: priceInfo.martName,
+        price: String(priceInfo.price),
+      };
+    }
+    setShoppingPriceEdits(editMap);
+  };
+
+  const handleShoppingItemUpdate = async () => {
+    if (!selectedShoppingRow) {
+      return;
+    }
+
+    const nextProduct = shoppingItemEditFormData.product.trim();
+    const nextUnit = shoppingItemEditFormData.unit.trim();
+
+    if (!nextProduct || !nextUnit) {
+      return;
+    }
+
+    try {
+      setIsSavingShoppingItem(true);
+      await shoppingAPI.updateItem({
+        product: selectedShoppingRow.product,
+        unit: selectedShoppingRow.unit,
+        nextProduct,
+        nextUnit,
+      });
+      const latestItems = await loadShoppingItems();
+      syncDetailRow(latestItems, nextProduct, nextUnit);
+      setShoppingSearchQuery(nextProduct);
+    } catch (error) {
+      console.error('장보기 품목 수정 실패:', error);
+    } finally {
+      setIsSavingShoppingItem(false);
+    }
+  };
+
+  const handleShoppingPriceUpdate = async (priceId: string) => {
+    const editData = shoppingPriceEdits[priceId];
+    if (!editData || !selectedShoppingRow) {
+      return;
+    }
+
+    const normalizedMart = editData.martName.trim();
+    const parsedPrice = Number(editData.price);
+
+    if (!normalizedMart || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      return;
+    }
+
+    try {
+      setSavingShoppingPriceId(priceId);
+      await shoppingAPI.updatePrice(priceId, {
+        martName: normalizedMart,
+        price: parsedPrice,
+      });
+      const latestItems = await loadShoppingItems();
+      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
+    } catch (error) {
+      console.error('장보기 시세 수정 실패:', error);
+    } finally {
+      setSavingShoppingPriceId(null);
+    }
+  };
+
+  const handleShoppingDeleteClick = (priceId: string, martName: string) => {
+    setShoppingDeleteConfirm({
+      isOpen: true,
+      priceId,
+      martName,
+    });
+  };
+
+  const handleShoppingDeleteCancel = () => {
+    setShoppingDeleteConfirm({ isOpen: false, priceId: '', martName: '' });
+  };
+
+  const handleShoppingItemDeleteClick = () => {
+    if (!selectedShoppingRow) {
+      return;
+    }
+
+    setShoppingItemDeleteConfirm({
+      isOpen: true,
+      product: selectedShoppingRow.product,
+      unit: selectedShoppingRow.unit,
+    });
+  };
+
+  const handleShoppingItemDeleteCancel = () => {
+    setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
+  };
+
+  const handleShoppingItemDeleteConfirm = async () => {
+    if (!selectedShoppingRow) {
+      return;
+    }
+
+    try {
+      setIsSavingShoppingItem(true);
+      await shoppingAPI.deleteItem({
+        product: selectedShoppingRow.product,
+        unit: selectedShoppingRow.unit,
+      });
+      await loadShoppingItems();
+      handleCloseShoppingDetail();
+    } catch (error) {
+      console.error('장보기 품목 삭제 실패:', error);
+    } finally {
+      setIsSavingShoppingItem(false);
+      setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
+    }
+  };
+
+  const handleShoppingDeleteConfirm = async () => {
+    const { priceId } = shoppingDeleteConfirm;
+    if (!priceId || !selectedShoppingRow) {
+      return;
+    }
+
+    try {
+      setSavingShoppingPriceId(priceId);
+      await shoppingAPI.deletePrice(priceId);
+      const latestItems = await loadShoppingItems();
+      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
+    } catch (error) {
+      console.error('장보기 시세 삭제 실패:', error);
+    } finally {
+      setSavingShoppingPriceId(null);
+      setShoppingDeleteConfirm({ isOpen: false, priceId: '', martName: '' });
+    }
+  };
+
+  const handleShoppingAddMart = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedShoppingRow) {
+      return;
+    }
+
+    const normalizedMart = shoppingNewMartFormData.martName.trim();
+    const parsedPrice = Number(shoppingNewMartFormData.price);
+
+    if (
+      !normalizedMart ||
+      !Number.isFinite(parsedPrice) ||
+      parsedPrice <= 0
+    ) {
+      return;
+    }
+
+    try {
+      setIsSavingShopping(true);
+      await shoppingAPI.addPrice({
+        product: selectedShoppingRow.product,
+        unit: selectedShoppingRow.unit,
+        martName: normalizedMart,
+        price: parsedPrice,
+      });
+      const latestItems = await loadShoppingItems();
+      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
+      setShoppingNewMartFormData((prev) => ({
+        ...prev,
+        martName: '',
+        price: '',
+      }));
+    } catch (error) {
+      console.error('장보기 시세 등록 실패:', error);
+    } finally {
+      setIsSavingShopping(false);
+    }
+  };
+
+  const handleShoppingAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const normalizedProduct = shoppingNewItemFormData.product.trim();
+    const normalizedUnit = shoppingNewItemFormData.unit.trim();
+
+    if (
+      !normalizedProduct ||
+      !normalizedUnit
+    ) {
+      return;
+    }
+
+    try {
+      setIsSavingShopping(true);
+      await shoppingAPI.addItem({
+        product: normalizedProduct,
+        unit: normalizedUnit,
+      });
+      const latestItems = await loadShoppingItems();
+      const matched = latestItems.find(
+        (item) =>
+          item.product === normalizedProduct && item.unit === normalizedUnit,
+      );
+
+      if (matched) {
+        const nextRow = toComparisonRow(matched);
+        if (nextRow) {
+          handleOpenShoppingDetail(nextRow);
+        }
+      }
+      setShoppingSearchQuery(normalizedProduct);
+      setIsShoppingNewItemModalOpen(false);
+      setShoppingNewItemFormData(createInitialNewItemFormData());
+    } catch (error) {
+      console.error('장보기 품목 추가 실패:', error);
+    } finally {
+      setIsSavingShopping(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -498,8 +954,9 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     setDeleteConfirm({ isOpen: false, item: null });
   };
 
-  const isFormValid =
-    formData.date && formData.category && formData.amount && formData.writer;
+  const isFormValid = Boolean(
+    formData.date && formData.category && formData.amount && formData.writer,
+  );
 
   // ✅ 서버에서 이미 내림차순 정렬되어 있음 (중복 정렬 제거)
   const totalAmount = useMemo(
@@ -633,7 +1090,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     isLoadingPreviousMonth,
     previousMonthComparableTotal,
     monthToDateDiff,
-    comparisonDay,
     currentDayOfMonth,
     previousMonthDays,
   ]);
@@ -653,6 +1109,30 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       .sort((a, b) => b.total - a.total);
   }, [items, totalAmount]);
 
+  const shoppingComparisonRows = useMemo<ShoppingComparisonRow[]>(() => {
+    return shoppingItems
+      .filter((row) => row.prices.length > 0)
+      .map((row) => toComparisonRow(row))
+      .filter((row): row is ShoppingComparisonRow => row !== null)
+      .sort((a, b) => a.product.localeCompare(b.product, 'ko-KR'));
+  }, [shoppingItems]);
+
+  const filteredShoppingRows = useMemo(() => {
+    const query = shoppingSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return shoppingComparisonRows;
+    }
+
+    return shoppingComparisonRows.filter((row) => {
+      if (row.product.toLowerCase().includes(query)) {
+        return true;
+      }
+      return row.prices.some((priceInfo) =>
+        priceInfo.martName.toLowerCase().includes(query),
+      );
+    });
+  }, [shoppingComparisonRows, shoppingSearchQuery]);
+
   return (
     <div className={styles.ledgerPage}>
       {/* <div className={styles.ledgerHeader}>
@@ -660,339 +1140,67 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       </div> */}
 
       <div className={styles.ledgerMain}>
-        {/* 월 선택 */}
-        {(activeTab === 'list' || activeTab === 'stats') && (
-          <div className={styles.monthSelector}>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className={styles.monthSelect}
-              disabled={isLoadingItems || isLoadingMonths}
-            >
-              {monthOptions.map((month) => (
-                <option key={month} value={month}>
-                  {formatMonthDisplay(month)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* 홈 탭 */}
         {activeTab === 'home' && (
-          <div className={styles.tabContent}>
-            <div className={styles.summaryCard}>
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>이번달 총 지출</span>
-                <span className={styles.summaryAmount}>
-                  {totalAmount.toLocaleString()}원
-                </span>
-              </div>
-              <div className={styles.summarySubRow}>
-                <span className={styles.summarySubLabel}>
-                  총 {items.length}건
-                </span>
-                {items.length > 0 && (
-                  <span className={styles.summarySubLabel}>
-                    평균{' '}
-                    {Math.round(totalAmount / items.length).toLocaleString()}
-                    원/건
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.homeCards}>
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>지난달 지출 비교</span>
-                <strong className={styles.homeCardValue}>
-                  {`${monthDiff >= 0 ? '+' : '-'}${Math.abs(monthDiff).toLocaleString()}원 (${monthDiffRate >= 0 ? '+' : ''}${monthDiffRate.toFixed(1)}%)`}
-                </strong>
-                <span className={styles.homeCardValueText}>
-                  {previousMonthInsight}
-                </span>
-              </div>
-
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>오늘/이번주 지출</span>
-                <strong className={styles.homeCardValue}>
-                  오늘 {todayAndWeekSpending.todayAmount.toLocaleString()}원
-                </strong>
-                <span className={styles.homeCardValueText}>
-                  이번주 {todayAndWeekSpending.weekAmount.toLocaleString()}원
-                </span>
-              </div>
-
-              <div className={styles.homeCard}>
-                <span className={styles.homeCardLabel}>월 예산 진행률</span>
-                <strong className={styles.homeCardValue}>
-                  {budgetUsageRate.toFixed(1)}%
-                </strong>
-                <div className={styles.homeProgressTrack}>
-                  <div
-                    className={styles.homeProgressFill}
-                    style={{ width: `${Math.min(budgetUsageRate, 100)}%` }}
-                  />
-                </div>
-                <span className={styles.homeCardValueText}>
-                  예산 {monthlyBudget.toLocaleString()}원 / 잔여{' '}
-                  {budgetRemaining.toLocaleString()}원
-                </span>
-              </div>
-            </div>
-          </div>
+          <LedgerHomeTabPage
+            totalAmount={totalAmount}
+            itemCount={items.length}
+            monthDiff={monthDiff}
+            monthDiffRate={monthDiffRate}
+            previousMonthInsight={previousMonthInsight}
+            todayAmount={todayAndWeekSpending.todayAmount}
+            weekAmount={todayAndWeekSpending.weekAmount}
+            budgetUsageRate={budgetUsageRate}
+            monthlyBudget={monthlyBudget}
+            budgetRemaining={budgetRemaining}
+          />
         )}
 
-        {/* 내역 탭 */}
         {activeTab === 'list' && (
-          <div className={styles.tabContent}>
-            {/* 카테고리 필터 */}
-            <div className={styles.filterRow}>
-              <div className={styles.filterSelectWrap}>
-                <select
-                  className={styles.filterSelect}
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                  <option value="">전체 카테고리</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-
-                <div className={styles.filterInfo}>
-                  <span>{selectedCategoryStat.count}건</span>
-                  <span className={styles.filterTotal}>
-                    {selectedCategoryStat.total.toLocaleString()}원
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 지출 목록 */}
-            <div className={styles.itemList}>
-              {filteredItems.length === 0 ? (
-                <p className={styles.emptyMessage}>지출 내역이 없습니다</p>
-              ) : (
-                filteredItems.map((item: LedgerItem, index: number) => (
-                  <div
-                    key={index}
-                    className={styles.item}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <div className={styles.itemHeader}>
-                      <span className={styles.itemDate}>
-                        {formatDateDisplay(item.date)}
-                      </span>
-                      <span className={styles.itemAmount}>
-                        {item.amount.toLocaleString()}원
-                      </span>
-                    </div>
-                    <div className={styles.itemBody}>
-                      <span className={styles.itemCategory}>
-                        {item.category}
-                      </span>
-                      <div className={styles.itemMeta}>
-                        <span className={styles.itemWriter}>{item.writer}</span>
-                      </div>
-                    </div>
-                    {(item.description || item.paymentMethod) && (
-                      <div className={styles.itemFooter}>
-                        <div className={styles.itemDescription}>
-                          {item.description}
-                        </div>
-                        <span className={styles.itemPayment}>
-                          {item.paymentMethod}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <LedgerListTabPage
+            selectedMonth={selectedMonth}
+            monthOptions={monthOptions}
+            isLoadingItems={isLoadingItems}
+            isLoadingMonths={isLoadingMonths}
+            onMonthChange={setSelectedMonth}
+            formatMonthDisplay={formatMonthDisplay}
+            listViewTab={listViewTab}
+            onListViewTabChange={setListViewTab}
+            filterCategory={filterCategory}
+            onFilterCategoryChange={setFilterCategory}
+            categories={CATEGORIES}
+            selectedCategoryStat={selectedCategoryStat}
+            filteredItems={filteredItems}
+            onItemClick={handleItemClick}
+            formatDateDisplay={formatDateDisplay}
+            totalAmount={totalAmount}
+            itemCount={items.length}
+            categoryStats={categoryStats}
+            writerStats={writerStats}
+          />
         )}
 
-        {/* 통계 탭 */}
-        {activeTab === 'stats' && (
-          <div className={styles.tabContent}>
-            <div className={styles.summaryCard}>
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>총 지출</span>
-                <span className={styles.summaryAmount}>
-                  {totalAmount.toLocaleString()}원
-                </span>
-              </div>
-              <div className={styles.summarySubRow}>
-                <span className={styles.summarySubLabel}>
-                  총 {items.length}건
-                </span>
-                {items.length > 0 && (
-                  <span className={styles.summarySubLabel}>
-                    평균{' '}
-                    {Math.round(totalAmount / items.length).toLocaleString()}
-                    원/건
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {items.length === 0 ? (
-              <p className={styles.emptyMessage}>이번달 지출 내역이 없습니다</p>
-            ) : (
-              <>
-                {/* 카테고리별 지출 */}
-                <div className={styles.statSection}>
-                  <h3 className={styles.statSectionTitle}>카테고리별 지출</h3>
-                  <div className={styles.statList}>
-                    {categoryStats.map(({ category, total, percent }) => (
-                      <div key={category} className={styles.statItem}>
-                        <div className={styles.statItemHeader}>
-                          <span className={styles.statLabel}>{category}</span>
-                          <div className={styles.statAmountGroup}>
-                            <span className={styles.statAmount}>
-                              {total.toLocaleString()}원
-                            </span>
-                            <span className={styles.statPercent}>
-                              {percent.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className={styles.barTrack}>
-                          <div
-                            className={styles.barFill}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 작성자별 지출 */}
-                <div className={styles.statSection}>
-                  <h3 className={styles.statSectionTitle}>작성자별 지출</h3>
-                  <div className={styles.writerCards}>
-                    {writerStats.map(({ writer, total, percent }) => (
-                      <div key={writer} className={styles.writerCard}>
-                        <div className={styles.writerName}>{writer}</div>
-                        <div className={styles.writerAmount}>
-                          {total.toLocaleString()}원
-                        </div>
-                        <div className={styles.writerPercent}>
-                          {percent.toFixed(1)}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+        {activeTab === 'shopping' && (
+          <LedgerShoppingTabPage
+            shoppingSearchQuery={shoppingSearchQuery}
+            onSearchChange={setShoppingSearchQuery}
+            onOpenShoppingNewItemModal={handleOpenShoppingNewItemModal}
+            isLoadingShopping={isLoadingShopping}
+            filteredShoppingRows={filteredShoppingRows}
+            onOpenShoppingDetail={handleOpenShoppingDetail}
+            formatShoppingUpdatedDate={formatShoppingUpdatedDate}
+          />
         )}
 
-        {/* 추가 탭 */}
         {activeTab === 'add' && (
-          <div className={styles.tabContent}>
-            <div className={styles.addPanel}>
-              <form className={styles.addForm} onSubmit={handleSubmit}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="date">날짜*</label>
-                  <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="category">카테고리*</label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">선택하세요</option>
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="amount">금액*</label>
-                  <input
-                    type="number"
-                    id="amount"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    placeholder="0"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="writer">작성자*</label>
-                  <input
-                    type="text"
-                    id="writer"
-                    name="writer"
-                    value={formData.writer}
-                    onChange={handleChange}
-                    placeholder="작성자"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="paymentMethod">결제수단</label>
-                  <input
-                    type="text"
-                    id="paymentMethod"
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    onChange={handleChange}
-                    placeholder="카카오페이, 신용카드 등"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="description">설명</label>
-                  <input
-                    type="text"
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    placeholder="메모"
-                  />
-                </div>
-
-                <div className={styles.addFormButtonRow}>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="large"
-                    fullWidth
-                    disabled={!isFormValid || isSaving || isDeleting}
-                  >
-                    {isSaving ? '저장 중...' : '저장하기'}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <LedgerAddTabPage
+            formData={formData}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            categories={CATEGORIES}
+            isFormValid={isFormValid}
+            isSaving={isSaving}
+            isDeleting={isDeleting}
+          />
         )}
       </div>
 
@@ -1149,6 +1357,207 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
         onConfirm={handleDeleteConfirm}
         title="삭제 확인"
         message="정말 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <Modal
+        isOpen={selectedShoppingRow !== null}
+        onClose={handleCloseShoppingDetail}
+        title={
+          selectedShoppingRow
+            ? `${selectedShoppingRow.product} (${selectedShoppingRow.unit})`
+            : '장보기 상세'
+        }
+        maxWidth="520px"
+      >
+        {selectedShoppingRow && (
+          <div className={styles.shoppingDetailWrap}>
+            <div className={styles.shoppingItemEditPanel}>
+              <h4 className={styles.shoppingDetailTitle}>품목 정보</h4>
+              <div className={styles.shoppingItemEditRow}>
+                <input
+                  type="text"
+                  name="product"
+                  value={shoppingItemEditFormData.product}
+                  onChange={handleShoppingItemEditFormChange}
+                  placeholder="품목명"
+                  className={styles.shoppingInput}
+                />
+                <input
+                  type="text"
+                  name="unit"
+                  value={shoppingItemEditFormData.unit}
+                  onChange={handleShoppingItemEditFormChange}
+                  placeholder="단위"
+                  className={styles.shoppingInput}
+                />
+              </div>
+              <div className={styles.shoppingItemEditActions}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  disabled={isSavingShoppingItem}
+                  onClick={handleShoppingItemUpdate}
+                >
+                  {isSavingShoppingItem ? '수정 중...' : '품목 수정'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="small"
+                  disabled={isSavingShoppingItem}
+                  onClick={handleShoppingItemDeleteClick}
+                >
+                  품목 삭제
+                </Button>
+              </div>
+            </div>
+
+            <div className={styles.shoppingDetailList}>
+              {selectedShoppingRow.prices.map((priceInfo) => {
+                const edit = shoppingPriceEdits[priceInfo.id] ?? {
+                  martName: priceInfo.martName,
+                  price: String(priceInfo.price),
+                };
+
+                return (
+                  <div key={priceInfo.id} className={styles.shoppingDetailRow}>
+                    <input
+                      data-price-id={priceInfo.id}
+                      name="martName"
+                      value={edit.martName}
+                      onChange={handleShoppingPriceEditChange}
+                      className={styles.shoppingInput}
+                    />
+                    <input
+                      data-price-id={priceInfo.id}
+                      name="price"
+                      type="number"
+                      min="1"
+                      value={edit.price}
+                      onChange={handleShoppingPriceEditChange}
+                      className={styles.shoppingInput}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      disabled={savingShoppingPriceId === priceInfo.id}
+                      onClick={() => handleShoppingPriceUpdate(priceInfo.id)}
+                    >
+                      {savingShoppingPriceId === priceInfo.id ? '저장 중...' : '수정'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      disabled={savingShoppingPriceId === priceInfo.id}
+                      onClick={() =>
+                        handleShoppingDeleteClick(priceInfo.id, priceInfo.martName)
+                      }
+                    >
+                      삭제
+                    </Button>
+                    <span className={styles.shoppingUpdatedDate}>
+                      {formatShoppingUpdatedDate(priceInfo.updatedAt)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <form className={styles.shoppingDetailAddForm} onSubmit={handleShoppingAddMart}>
+              <h4 className={styles.shoppingDetailTitle}>마트 추가</h4>
+              <div className={styles.shoppingDetailAddRow}>
+                <input
+                  type="text"
+                  name="martName"
+                  value={shoppingNewMartFormData.martName}
+                  onChange={handleShoppingNewMartFormChange}
+                  placeholder="마트명"
+                  className={styles.shoppingInput}
+                  required
+                />
+                <input
+                  type="number"
+                  name="price"
+                  min="1"
+                  value={shoppingNewMartFormData.price}
+                  onChange={handleShoppingNewMartFormChange}
+                  placeholder="가격"
+                  className={styles.shoppingInput}
+                  required
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="small"
+                  disabled={isSavingShopping}
+                >
+                  {isSavingShopping ? '추가 중...' : '추가'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={isShoppingNewItemModalOpen}
+        onClose={handleCloseShoppingNewItemModal}
+        title="품목 추가"
+        maxWidth="520px"
+      >
+        <form className={styles.shoppingItemAddForm} onSubmit={handleShoppingAddItem}>
+          <div className={styles.shoppingItemAddGrid}>
+            <input
+              type="text"
+              name="product"
+              value={shoppingNewItemFormData.product}
+              onChange={handleShoppingNewItemFormChange}
+              placeholder="품목명 (예: 사과)"
+              className={styles.shoppingInput}
+              required
+            />
+            <input
+              type="text"
+              name="unit"
+              value={shoppingNewItemFormData.unit}
+              onChange={handleShoppingNewItemFormChange}
+              placeholder="단위 (예: 1kg)"
+              className={styles.shoppingInput}
+              required
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="small"
+            disabled={isSavingShopping}
+          >
+            {isSavingShopping ? '추가 중...' : '추가하기'}
+          </Button>
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        isOpen={shoppingDeleteConfirm.isOpen}
+        onClose={handleShoppingDeleteCancel}
+        onConfirm={handleShoppingDeleteConfirm}
+        title="마트 시세 삭제"
+        message={`${shoppingDeleteConfirm.martName} 시세를 삭제하시겠어요?`}
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ConfirmModal
+        isOpen={shoppingItemDeleteConfirm.isOpen}
+        onClose={handleShoppingItemDeleteCancel}
+        onConfirm={handleShoppingItemDeleteConfirm}
+        title="품목 삭제"
+        message={`${shoppingItemDeleteConfirm.product} (${shoppingItemDeleteConfirm.unit}) 품목 전체를 삭제하시겠어요?`}
         confirmText="삭제"
         cancelText="취소"
       />

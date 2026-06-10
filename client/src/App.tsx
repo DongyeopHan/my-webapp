@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { LedgerPage } from './pages/LedgerPage';
 import { Modal } from './components/Modal';
-// import { BiblePage } from './pages/BiblePage';
-// import { StockPage } from './pages/StockPage';
-// import { TodoListPage } from './pages/TodoListPage';
 import { LoginPage } from './pages/LoginPage';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import type { User } from './types/user';
@@ -17,27 +14,18 @@ import {
   type LogoutEventDetail,
 } from './services/authStorage';
 
-type PageType = 'home' | /* 'todo' | 'bible' | */ 'ledger' /* | 'stock' */;
-type ActiveTab = 'home' | 'list' | 'stats' | 'add';
-
-// const MENU_ITEMS: MenuItem[] = [
-//   { id: 'todo', label: '✅Todo List' },
-//   { id: 'bible', label: '📖성경통독' },
-//   { id: 'ledger', label: '📒가계부' },
-//   { id: 'stock', label: '📈주식' },
-// ];
+type ActiveTab = 'home' | 'list' | 'shopping' | 'add';
 
 const TAB_ITEMS: { id: ActiveTab; label: string }[] = [
   { id: 'home', label: '🏠 홈' },
   { id: 'list', label: '📋 내역' },
-  { id: 'stats', label: '📊 통계' },
+  { id: 'shopping', label: '🛒 장보기' },
   { id: 'add', label: '➕ 추가' },
 ];
 
 const initialStoredUser = getStoredUser();
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('ledger');
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [user, setUser] = useState<User | null>(initialStoredUser);
   const [sessionNotice, setSessionNotice] = useState('');
@@ -91,14 +79,12 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     clearStoredUser();
-    setCurrentPage('home');
   };
 
   useEffect(() => {
     const handleForcedLogout = (event: Event) => {
       const customEvent = event as CustomEvent<LogoutEventDetail>;
       setUser(null);
-      setCurrentPage('home');
       setSessionNotice(
         customEvent.detail?.message ||
           '세션이 만료되어 로그아웃되었습니다. 다시 로그인해주세요.',
@@ -113,23 +99,7 @@ function App() {
   }, []);
 
   const handleHomeClick = () => {
-    setCurrentPage('ledger');
     setActiveTab('home');
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'ledger':
-        return <LedgerPage user={user!} activeTab={activeTab} />;
-      // case 'bible':
-      //   return <BiblePage user={user!} />;
-      // case 'todo':
-      //   return <TodoListPage user={user!} />;
-      // case 'stock':
-      //   return <StockPage />;
-      default:
-        return <LedgerPage user={user!} activeTab={activeTab} />;
-    }
   };
 
   // 로그인되지 않은 경우 로그인 페이지만 표시
@@ -159,7 +129,9 @@ function App() {
         )}
       </header>
 
-      <main className="app-main">{renderPage()}</main>
+      <main className="app-main">
+        <LedgerPage user={user} activeTab={activeTab} />
+      </main>
 
       <footer className="app-footer">
         <div className="menu-buttons">

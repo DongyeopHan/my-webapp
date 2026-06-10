@@ -680,6 +680,238 @@
   transition: width 0.35s ease;
 }
 
+.shoppingIntroCard {
+  background: #fff9f5;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.shoppingTitle {
+  margin: 0;
+  font-size: 15px;
+  color: #5d4e37;
+  font-weight: 700;
+}
+
+.shoppingDescription {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #7a685a;
+}
+
+.shoppingForm {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.shoppingInput {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #5d4e37;
+  background: #fff;
+}
+
+.shoppingSearchBar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .shoppingForm {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .shoppingForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shoppingGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.shoppingCard {
+  background: #ffffff;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.shoppingHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.shoppingProduct {
+  font-size: 14px;
+  color: #5d4e37;
+  font-weight: 700;
+}
+
+.shoppingUnit {
+  font-size: 12px;
+  color: #8b7355;
+  margin-top: 2px;
+}
+
+.shoppingSpread {
+  font-size: 12px;
+  color: #e8845a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shoppingPriceList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shoppingPriceRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.shoppingMartName {
+  font-size: 13px;
+  color: #5d4e37;
+}
+
+.shoppingPriceValue {
+  font-size: 13px;
+  color: #5d4e37;
+  font-weight: 700;
+}
+
+.shoppingUpdatedDate {
+  font-size: 11px;
+  color: #8b7355;
+  white-space: nowrap;
+}
+
+.shoppingBestBadge {
+  font-size: 11px;
+  color: #ffffff;
+  background: #e8845a;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+.shoppingFooterText {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #7a685a;
+}
+
+.shoppingDetailButton {
+  width: 100%;
+  margin-top: 10px;
+  border: 1.5px solid #ffe0d0;
+  border-radius: 8px;
+  background: #fff7f0;
+  color: #5d4e37;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.shoppingDetailButton:hover {
+  background: #ffefe4;
+}
+
+.shoppingDetailWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shoppingItemEditPanel {
+  border: 1.5px solid #ffe0d0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.shoppingItemEditRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.shoppingItemEditActions {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.shoppingDetailList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shoppingDetailRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.shoppingDetailAddForm {
+  border-top: 1.5px solid #ffe0d0;
+  padding-top: 10px;
+}
+
+.shoppingDetailTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #5d4e37;
+}
+
+.shoppingDetailAddRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.shoppingItemAddForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shoppingItemAddGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .quickAddForm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
@@ -699,6 +931,15 @@
 
 @media (max-width: 560px) {
   .quickAddForm {
+    grid-template-columns: 1fr;
+  }
+
+  .shoppingDetailRow,
+  .shoppingDetailAddRow,
+  .shoppingItemAddGrid,
+  .shoppingSearchBar,
+  .shoppingItemEditRow,
+  .shoppingItemEditActions {
     grid-template-columns: 1fr;
   }
 }
