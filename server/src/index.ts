@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import shoppingRoutes from './routes/shopping.js';
+import stockRoutes from './routes/stocks.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,7 @@ app.use(express.json());
 // 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/shopping', shoppingRoutes);
+app.use('/api/stocks', stockRoutes);
 
 app.get('/health', (_, res) => {
   res.json({ status: 'ok' });

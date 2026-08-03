@@ -17,8 +17,8 @@ import type { ShoppingPriceItem } from '../types/shopping';
 import type { User } from '../types/user';
 import { LedgerHomeTabPage } from './ledger/LedgerHomeTabPage';
 import { LedgerListTabPage } from './ledger/LedgerListTabPage';
-import { LedgerShoppingTabPage } from './ledger/LedgerShoppingTabPage';
 import { LedgerAddTabPage } from './ledger/LedgerAddTabPage';
+import { StockPage } from './StockPage';
 
 type LedgerItem = {
   date: string;
@@ -44,7 +44,7 @@ type CachedLedgerItems = {
   items: LedgerItem[];
 };
 
-type ActiveTab = 'home' | 'list' | 'shopping' | 'add';
+type ActiveTab = 'home' | 'list' | 'stock' | 'add';
 type ListViewTab = 'history' | 'stats';
 
 type ShoppingComparisonRow = {
@@ -241,8 +241,8 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     useState(0);
   const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
   const [listViewTab, setListViewTab] = useState<ListViewTab>('history');
-  const [shoppingItems, setShoppingItems] = useState<ShoppingPriceItem[]>([]);
-  const [shoppingSearchQuery, setShoppingSearchQuery] = useState('');
+  const [, setShoppingItems] = useState<ShoppingPriceItem[]>([]);
+  const [, setShoppingSearchQuery] = useState('');
   const [selectedShoppingRow, setSelectedShoppingRow] =
     useState<ShoppingComparisonRow | null>(null);
   const [shoppingPriceEdits, setShoppingPriceEdits] = useState<
@@ -258,7 +258,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     );
   const [isShoppingNewItemModalOpen, setIsShoppingNewItemModalOpen] =
     useState(false);
-  const [isLoadingShopping, setIsLoadingShopping] = useState(false);
+  const [, setIsLoadingShopping] = useState(false);
   const [isSavingShopping, setIsSavingShopping] = useState(false);
   const [isSavingShoppingItem, setIsSavingShoppingItem] = useState(false);
   const [savingShoppingPriceId, setSavingShoppingPriceId] = useState<
@@ -490,7 +490,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== 'shopping') {
+    if (activeTab !== 'stock') {
       return;
     }
 
@@ -567,11 +567,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
   ) => {
     const { name, value } = e.target;
     setShoppingNewItemFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleOpenShoppingNewItemModal = () => {
-    setShoppingNewItemFormData(createInitialNewItemFormData());
-    setIsShoppingNewItemModalOpen(true);
   };
 
   const handleCloseShoppingNewItemModal = () => {
@@ -1109,30 +1104,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
       .sort((a, b) => b.total - a.total);
   }, [items, totalAmount]);
 
-  const shoppingComparisonRows = useMemo<ShoppingComparisonRow[]>(() => {
-    return shoppingItems
-      .filter((row) => row.prices.length > 0)
-      .map((row) => toComparisonRow(row))
-      .filter((row): row is ShoppingComparisonRow => row !== null)
-      .sort((a, b) => a.product.localeCompare(b.product, 'ko-KR'));
-  }, [shoppingItems]);
-
-  const filteredShoppingRows = useMemo(() => {
-    const query = shoppingSearchQuery.trim().toLowerCase();
-    if (!query) {
-      return shoppingComparisonRows;
-    }
-
-    return shoppingComparisonRows.filter((row) => {
-      if (row.product.toLowerCase().includes(query)) {
-        return true;
-      }
-      return row.prices.some((priceInfo) =>
-        priceInfo.martName.toLowerCase().includes(query),
-      );
-    });
-  }, [shoppingComparisonRows, shoppingSearchQuery]);
-
   return (
     <div className={styles.ledgerPage}>
       {/* <div className={styles.ledgerHeader}>
@@ -1179,17 +1150,7 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
           />
         )}
 
-        {activeTab === 'shopping' && (
-          <LedgerShoppingTabPage
-            shoppingSearchQuery={shoppingSearchQuery}
-            onSearchChange={setShoppingSearchQuery}
-            onOpenShoppingNewItemModal={handleOpenShoppingNewItemModal}
-            isLoadingShopping={isLoadingShopping}
-            filteredShoppingRows={filteredShoppingRows}
-            onOpenShoppingDetail={handleOpenShoppingDetail}
-            formatShoppingUpdatedDate={formatShoppingUpdatedDate}
-          />
-        )}
+        {activeTab === 'stock' && <StockPage />}
 
         {activeTab === 'add' && (
           <LedgerAddTabPage

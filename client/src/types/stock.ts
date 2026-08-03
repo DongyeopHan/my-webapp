@@ -12,6 +12,8 @@ export type StockQuote = {
   directionLabel: string;
   tradeState: string;
   lastUpdated: string | null;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
 };
 
 export type StockSearchItem = {

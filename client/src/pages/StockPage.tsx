@@ -13,12 +13,6 @@ const percentFormatter = new Intl.NumberFormat('ko-KR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const volumeFormatter = new Intl.NumberFormat('ko-KR');
-const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-});
 
 const formatSignedNumber = (value: number) => {
   if (value > 0) {
@@ -44,18 +38,15 @@ const formatSignedPercent = (value: number) => {
   return `${percentFormatter.format(value)}%`;
 };
 
-const formatTime = (value: string | null) => {
-  if (!value) {
-    return '정보 없음';
+const getPercentToReference = (
+  currentPrice: number,
+  referencePrice: number,
+) => {
+  if (!referencePrice) {
+    return 0;
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '정보 없음';
-  }
-
-  return timeFormatter.format(date);
+  return (currentPrice / referencePrice - 1) * 100;
 };
 
 const getDirectionClassName = (direction: StockDirection) => {
@@ -66,6 +57,47 @@ const getDirectionClassName = (direction: StockDirection) => {
       return styles.falling;
     default:
       return styles.unchanged;
+  }
+};
+
+const TARGET_PRICES_STORAGE_KEY = 'stock-target-prices';
+
+const readStoredTargetPrices = () => {
+  if (typeof window === 'undefined') {
+    return {} as Record<string, string>;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(TARGET_PRICES_STORAGE_KEY);
+
+    if (!storedValue) {
+      return {} as Record<string, string>;
+    }
+
+    const parsedValue = JSON.parse(storedValue) as Record<string, string>;
+
+    if (parsedValue && typeof parsedValue === 'object') {
+      return parsedValue;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  return {} as Record<string, string>;
+};
+
+const writeStoredTargetPrices = (targetPrices: Record<string, string>) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      TARGET_PRICES_STORAGE_KEY,
+      JSON.stringify(targetPrices),
+    );
+  } catch (error) {
+    console.error(error);
   }
 };
 
@@ -84,9 +116,17 @@ type StockCardProps = {
   quote: StockQuote;
   onRemove: (code: string) => void;
   isRemoveDisabled: boolean;
+  targetPrice: string;
+  onTargetPriceChange: (code: string, value: string) => void;
 };
 
-const StockCard = ({ quote, onRemove, isRemoveDisabled }: StockCardProps) => {
+const StockCard = ({
+  quote,
+  onRemove,
+  isRemoveDisabled,
+  targetPrice,
+  onTargetPriceChange,
+}: StockCardProps) => {
   const directionClassName = getDirectionClassName(quote.direction);
 
   return (
@@ -116,31 +156,62 @@ const StockCard = ({ quote, onRemove, isRemoveDisabled }: StockCardProps) => {
         </div>
       </div>
 
-      <p className={styles.price}>{currencyFormatter.format(quote.price)}원</p>
-
-      <div className={styles.changeRow}>
-        <span className={`${styles.changeValue} ${directionClassName}`}>
-          {formatSignedNumber(quote.change)}원
-        </span>
-        <span className={`${styles.changePercent} ${directionClassName}`}>
-          {formatSignedPercent(quote.changePercent)}
-        </span>
-      </div>
-
-      <div className={styles.metaBoxRow}>
-        <div className={styles.metaBoxItem}>
-          <span className={styles.metaBoxLabel}>거래량</span>
-          <span className={styles.metaBoxValue}>
-            {volumeFormatter.format(quote.volume)}
+      <div className={styles.priceBlock}>
+        <p className={styles.price}>
+          {currencyFormatter.format(quote.price)}원
+        </p>
+        <div className={styles.changeRow}>
+          <span className={`${styles.changeValue} ${directionClassName}`}>
+            {formatSignedNumber(quote.change)}원
           </span>
-        </div>
-        <div className={styles.metaBoxItem}>
-          <span className={styles.metaBoxLabel}>체결시각</span>
-          <span className={styles.metaBoxValue}>
-            {formatTime(quote.lastUpdated)}
+          <span className={`${styles.changePercent} ${directionClassName}`}>
+            {formatSignedPercent(quote.changePercent)}
           </span>
         </div>
       </div>
+
+      <div className={styles.metricsGrid}>
+        <div className={styles.metricBox}>
+          <span className={styles.metricLabel}>52주 최고</span>
+          <span className={styles.metricValue}>
+            {currencyFormatter.format(quote.fiftyTwoWeekHigh)}원
+          </span>
+          <span className={`${styles.metricDelta} ${styles.falling}`}>
+            {formatSignedPercent(
+              getPercentToReference(quote.price, quote.fiftyTwoWeekHigh),
+            )}
+          </span>
+        </div>
+        <div className={styles.metricBox}>
+          <span className={styles.metricLabel}>52주 최저</span>
+          <span className={styles.metricValue}>
+            {currencyFormatter.format(quote.fiftyTwoWeekLow)}원
+          </span>
+          <span className={`${styles.metricDelta} ${styles.rising}`}>
+            {formatSignedPercent(
+              getPercentToReference(quote.price, quote.fiftyTwoWeekLow),
+            )}
+          </span>
+        </div>
+      </div>
+
+      <label
+        className={styles.targetPriceField}
+        htmlFor={`target-${quote.code}`}
+      >
+        <span className={styles.targetPriceLabel}>목표가</span>
+        <input
+          id={`target-${quote.code}`}
+          className={styles.targetPriceInput}
+          type="number"
+          min="0"
+          placeholder="입력"
+          value={targetPrice}
+          onChange={(event) =>
+            onTargetPriceChange(quote.code, event.target.value)
+          }
+        />
+      </label>
     </article>
   );
 };
@@ -155,12 +226,14 @@ export function StockPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [targetPrices, setTargetPrices] = useState<Record<string, string>>(
+    readStoredTargetPrices,
+  );
   const searchRequestIdRef = useRef(0);
   const searchDebounceTimerRef = useRef<number | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const { quotes, refreshedAt, isLoading, error } =
-    useStockQuotes(watchlistCodes);
+  const { quotes, isLoading, error } = useStockQuotes(watchlistCodes);
 
   useEffect(() => {
     const loadWatchlist = async () => {
@@ -199,6 +272,12 @@ export function StockPage() {
   };
 
   const handleRemoveStock = (code: string) => {
+    setTargetPrices((prev) => {
+      const nextTargetPrices = { ...prev };
+      delete nextTargetPrices[code];
+      return nextTargetPrices;
+    });
+
     void persistWatchlist(watchlistCodes.filter((item) => item !== code));
   };
 
@@ -304,29 +383,21 @@ export function StockPage() {
     setIsSearching(false);
   };
 
+  useEffect(() => {
+    writeStoredTargetPrices(targetPrices);
+  }, [targetPrices]);
+
+  const handleTargetPriceChange = (code: string, value: string) => {
+    setTargetPrices((prev) => ({ ...prev, [code]: value }));
+  };
+
   return (
     <div className={styles.stockPage}>
-      <section className={styles.summaryBar}>
-        <span>최근 갱신 {formatTime(refreshedAt || null)}</span>
-        <span>관심종목 {watchlistCodes.length}</span>
-        {isWatchlistSaving ? <span>관심종목 저장 중...</span> : null}
-      </section>
-
       {watchlistError ? (
         <div className={styles.errorMessage}>{watchlistError}</div>
       ) : null}
 
-      <section className={styles.searchSection}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h3 className={styles.sectionTitle}>종목 검색</h3>
-            <p className={styles.sectionDescription}>
-              종목명이나 6자리 종목코드로 검색해서 관심종목에 추가할 수
-              있습니다.
-            </p>
-          </div>
-        </div>
-
+      <div className={styles.searchBarWrap}>
         <div className={styles.searchAutocomplete} ref={searchContainerRef}>
           <input
             className={styles.searchInput}
@@ -372,21 +443,29 @@ export function StockPage() {
         {searchError ? (
           <div className={styles.errorMessage}>{searchError}</div>
         ) : null}
-      </section>
+      </div>
 
       {error ? <div className={styles.errorMessage}>{error}</div> : null}
 
-      <section className={styles.stockGrid}>
-        {isLoading && quotes.length === 0
-          ? renderSkeletonCards()
-          : quotes.map((quote) => (
-              <StockCard
-                key={quote.code}
-                quote={quote}
-                onRemove={handleRemoveStock}
-                isRemoveDisabled={isWatchlistLoading || isWatchlistSaving}
-              />
-            ))}
+      <section className={styles.stockGridSection}>
+        {watchlistCodes.length === 0 && !isWatchlistLoading ? (
+          <div className={styles.emptyState}>관심종목이 없습니다.</div>
+        ) : null}
+
+        <div className={styles.stockGrid}>
+          {isLoading && quotes.length === 0
+            ? renderSkeletonCards()
+            : quotes.map((quote) => (
+                <StockCard
+                  key={quote.code}
+                  quote={quote}
+                  onRemove={handleRemoveStock}
+                  isRemoveDisabled={isWatchlistLoading || isWatchlistSaving}
+                  targetPrice={targetPrices[quote.code] ?? ''}
+                  onTargetPriceChange={handleTargetPriceChange}
+                />
+              ))}
+        </div>
       </section>
     </div>
   );

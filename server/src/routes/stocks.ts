@@ -20,6 +20,8 @@ type StockQuote = {
   directionLabel: string;
   tradeState: string;
   lastUpdated: string | null;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
 };
 
 type StockSearchItem = {
@@ -55,6 +57,12 @@ type NaverRealtimeItem = {
 
 type NaverMarketValueResponse = {
   stocks?: NaverMarketValueItem[];
+};
+
+type NaverPriceHistoryItem = {
+  closePrice?: string;
+  highPrice?: string;
+  lowPrice?: string;
 };
 
 type NaverMarketValueItem = {
@@ -164,11 +172,35 @@ const fetchQuote = async (code: string): Promise<StockQuote> => {
     throw new Error(`주식 데이터 형식 오류: ${code}`);
   }
 
+  const currentPrice = parseNumber(item.closePriceRaw);
+  let fiftyTwoWeekHigh = currentPrice;
+  let fiftyTwoWeekLow = currentPrice;
+
+  try {
+    const history = await fetchPriceHistory(code);
+    const highs = history.map(
+      (entry) => parseNumber(entry.highPrice) || parseNumber(entry.closePrice),
+    );
+    const lows = history.map(
+      (entry) => parseNumber(entry.lowPrice) || parseNumber(entry.closePrice),
+    );
+
+    if (highs.length > 0) {
+      fiftyTwoWeekHigh = Math.max(...highs);
+    }
+
+    if (lows.length > 0) {
+      fiftyTwoWeekLow = Math.min(...lows);
+    }
+  } catch (historyError) {
+    console.warn('주식 히스토리 조회 실패:', historyError);
+  }
+
   return {
     code: item.itemCode,
     name: item.stockName,
     market: item.stockExchangeType?.nameKor || '국내',
-    price: parseNumber(item.closePriceRaw),
+    price: currentPrice,
     change: parseNumber(item.compareToPreviousClosePriceRaw),
     changePercent: parseNumber(item.fluctuationsRatioRaw),
     volume: parseNumber(item.accumulatedTradingVolumeRaw),
@@ -176,7 +208,29 @@ const fetchQuote = async (code: string): Promise<StockQuote> => {
     directionLabel: item.compareToPreviousPrice?.text || '보합',
     tradeState: item.tradeStopType?.text || '정보 없음',
     lastUpdated: item.localTradedAt || parseNaverTimestamp(payload.time),
+    fiftyTwoWeekHigh,
+    fiftyTwoWeekLow,
   };
+};
+
+const fetchPriceHistory = async (code: string) => {
+  const response = await fetch(
+    `https://m.stock.naver.com/api/stock/${code}/price`,
+    {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      signal: AbortSignal.timeout(8000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`주식 가격 히스토리 조회 실패: ${code}`);
+  }
+
+  const payload = (await response.json()) as NaverPriceHistoryItem[];
+  return payload;
 };
 
 // Fetch one page of market-cap ranked stocks used for search catalog.
