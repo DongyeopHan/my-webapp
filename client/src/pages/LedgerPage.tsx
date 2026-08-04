@@ -1,4 +1,12 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import {
+  Suspense,
+  lazy,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import styles from './LedgerPage.module.css';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
@@ -18,7 +26,10 @@ import type { User } from '../types/user';
 import { LedgerHomeTabPage } from './ledger/LedgerHomeTabPage';
 import { LedgerListTabPage } from './ledger/LedgerListTabPage';
 import { LedgerAddTabPage } from './ledger/LedgerAddTabPage';
-import { StockPage } from './StockPage';
+const StockPage = lazy(async () => {
+  const module = await import('./StockPage');
+  return { default: module.StockPage };
+});
 
 type LedgerItem = {
   date: string;
@@ -1150,7 +1161,11 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
           />
         )}
 
-        {activeTab === 'stock' && <StockPage />}
+        {activeTab === 'stock' && (
+          <Suspense fallback={<div className={styles.loading}>불러오는 중...</div>}>
+            <StockPage />
+          </Suspense>
+        )}
 
         {activeTab === 'add' && (
           <LedgerAddTabPage

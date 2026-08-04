@@ -61,6 +61,7 @@ const getDirectionClassName = (direction: StockDirection) => {
 };
 
 const TARGET_PRICES_STORAGE_KEY = 'stock-target-prices';
+const TARGET_DROP_PERCENTS_STORAGE_KEY = 'stock-target-drop-percents';
 
 const readStoredTargetPrices = () => {
   if (typeof window === 'undefined') {
@@ -101,6 +102,104 @@ const writeStoredTargetPrices = (targetPrices: Record<string, string>) => {
   }
 };
 
+const readStoredTargetDropPercents = () => {
+  if (typeof window === 'undefined') {
+    return {} as Record<string, string>;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(
+      TARGET_DROP_PERCENTS_STORAGE_KEY,
+    );
+
+    if (!storedValue) {
+      return {} as Record<string, string>;
+    }
+
+    const parsedValue = JSON.parse(storedValue) as Record<string, string>;
+
+    if (parsedValue && typeof parsedValue === 'object') {
+      return parsedValue;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  return {} as Record<string, string>;
+};
+
+const writeStoredTargetDropPercents = (
+  targetDropPercents: Record<string, string>,
+) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      TARGET_DROP_PERCENTS_STORAGE_KEY,
+      JSON.stringify(targetDropPercents),
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const getTargetPriceFromDropPercent = (
+  highPrice: number,
+  dropPercent: string,
+) => {
+  const parsedPercent = Number(dropPercent);
+
+  if (!Number.isFinite(parsedPercent) || parsedPercent < 0) {
+    return '';
+  }
+
+  const normalizedPercent = Math.min(parsedPercent, 100);
+  const targetPrice = Math.round(highPrice * (1 - normalizedPercent / 100));
+
+  return String(Math.max(0, targetPrice));
+};
+
+const normalizeDropPercent = (value: string) => {
+  if (!value.trim()) {
+    return '';
+  }
+
+  const parsedPercent = Number(value);
+
+  if (!Number.isFinite(parsedPercent)) {
+    return '';
+  }
+
+  const normalizedPercent = Math.min(Math.max(parsedPercent, 0), 100);
+  return normalizedPercent.toFixed(2).replace(/\.?0+$/, '');
+};
+
+const getDropPercentFromTargetPrice = (
+  highPrice: number,
+  targetPrice: string,
+) => {
+  const parsedTargetPrice = Number(targetPrice);
+
+  if (
+    !Number.isFinite(parsedTargetPrice) ||
+    parsedTargetPrice <= 0 ||
+    highPrice <= 0
+  ) {
+    return '';
+  }
+
+  const rawDropPercent = (1 - parsedTargetPrice / highPrice) * 100;
+  const normalizedDropPercent = Math.min(Math.max(rawDropPercent, 0), 100);
+
+  if (Number.isNaN(normalizedDropPercent)) {
+    return '';
+  }
+
+  return normalizedDropPercent.toFixed(2).replace(/\.?0+$/, '');
+};
+
 const renderSkeletonCards = () => {
   return Array.from({ length: 5 }, (_, index) => (
     <div key={index} className={`${styles.stockCard} ${styles.skeletonCard}`}>
@@ -117,7 +216,17 @@ type StockCardProps = {
   onRemove: (code: string) => void;
   isRemoveDisabled: boolean;
   targetPrice: string;
-  onTargetPriceChange: (code: string, value: string) => void;
+  targetDropPercent: string;
+  onTargetPriceChange: (
+    code: string,
+    value: string,
+    fiftyTwoWeekHigh: number,
+  ) => void;
+  onTargetDropPercentChange: (
+    code: string,
+    value: string,
+    fiftyTwoWeekHigh: number,
+  ) => void;
 };
 
 const StockCard = ({
@@ -125,9 +234,16 @@ const StockCard = ({
   onRemove,
   isRemoveDisabled,
   targetPrice,
+  targetDropPercent,
   onTargetPriceChange,
+  onTargetDropPercentChange,
 }: StockCardProps) => {
   const directionClassName = getDirectionClassName(quote.direction);
+  const parsedTargetPrice = Number(targetPrice);
+  const hasValidTargetPrice =
+    Number.isFinite(parsedTargetPrice) && parsedTargetPrice > 0;
+  const shouldRecommendBuy =
+    hasValidTargetPrice && quote.price <= parsedTargetPrice;
 
   return (
     <article className={styles.stockCard}>
@@ -199,18 +315,51 @@ const StockCard = ({
         className={styles.targetPriceField}
         htmlFor={`target-${quote.code}`}
       >
-        <span className={styles.targetPriceLabel}>목표가</span>
-        <input
-          id={`target-${quote.code}`}
-          className={styles.targetPriceInput}
-          type="number"
-          min="0"
-          placeholder="입력"
-          value={targetPrice}
-          onChange={(event) =>
-            onTargetPriceChange(quote.code, event.target.value)
-          }
-        />
+        <div className={styles.targetPriceHeader}>
+          <span className={styles.targetPriceLabel}>목표가</span>
+          {shouldRecommendBuy ? (
+            <span className={styles.buyRecommendationBadge}>매수 추천</span>
+          ) : null}
+        </div>
+        <div className={styles.targetPriceInputRow}>
+          <div className={styles.targetPercentInputWrap}>
+            <input
+              className={styles.targetPercentInput}
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="하락%"
+              value={targetDropPercent}
+              onChange={(event) =>
+                onTargetDropPercentChange(
+                  quote.code,
+                  event.target.value,
+                  quote.fiftyTwoWeekHigh,
+                )
+              }
+            />
+            <span className={styles.percentSuffix}>%</span>
+          </div>
+          <div className={styles.targetPriceInputWrap}>
+            <input
+              id={`target-${quote.code}`}
+              className={styles.targetPriceInput}
+              type="number"
+              min="0"
+              placeholder="목표가"
+              value={targetPrice}
+              onChange={(event) =>
+                onTargetPriceChange(
+                  quote.code,
+                  event.target.value,
+                  quote.fiftyTwoWeekHigh,
+                )
+              }
+            />
+            <span className={styles.wonSuffix}>원</span>
+          </div>
+        </div>
       </label>
     </article>
   );
@@ -229,6 +378,9 @@ export function StockPage() {
   const [targetPrices, setTargetPrices] = useState<Record<string, string>>(
     readStoredTargetPrices,
   );
+  const [targetDropPercents, setTargetDropPercents] = useState<
+    Record<string, string>
+  >(readStoredTargetDropPercents);
   const searchRequestIdRef = useRef(0);
   const searchDebounceTimerRef = useRef<number | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
@@ -276,6 +428,11 @@ export function StockPage() {
       const nextTargetPrices = { ...prev };
       delete nextTargetPrices[code];
       return nextTargetPrices;
+    });
+    setTargetDropPercents((prev) => {
+      const nextTargetDropPercents = { ...prev };
+      delete nextTargetDropPercents[code];
+      return nextTargetDropPercents;
     });
 
     void persistWatchlist(watchlistCodes.filter((item) => item !== code));
@@ -387,8 +544,40 @@ export function StockPage() {
     writeStoredTargetPrices(targetPrices);
   }, [targetPrices]);
 
-  const handleTargetPriceChange = (code: string, value: string) => {
+  useEffect(() => {
+    writeStoredTargetDropPercents(targetDropPercents);
+  }, [targetDropPercents]);
+
+  const handleTargetPriceChange = (
+    code: string,
+    value: string,
+    fiftyTwoWeekHigh: number,
+  ) => {
     setTargetPrices((prev) => ({ ...prev, [code]: value }));
+    setTargetDropPercents((prev) => ({
+      ...prev,
+      [code]: getDropPercentFromTargetPrice(fiftyTwoWeekHigh, value),
+    }));
+  };
+
+  const handleTargetDropPercentChange = (
+    code: string,
+    value: string,
+    fiftyTwoWeekHigh: number,
+  ) => {
+    const normalizedDropPercent = normalizeDropPercent(value);
+
+    setTargetDropPercents((prev) => ({
+      ...prev,
+      [code]: normalizedDropPercent,
+    }));
+    setTargetPrices((prev) => ({
+      ...prev,
+      [code]: getTargetPriceFromDropPercent(
+        fiftyTwoWeekHigh,
+        normalizedDropPercent,
+      ),
+    }));
   };
 
   return (
@@ -462,7 +651,9 @@ export function StockPage() {
                   onRemove={handleRemoveStock}
                   isRemoveDisabled={isWatchlistLoading || isWatchlistSaving}
                   targetPrice={targetPrices[quote.code] ?? ''}
+                  targetDropPercent={targetDropPercents[quote.code] ?? ''}
                   onTargetPriceChange={handleTargetPriceChange}
+                  onTargetDropPercentChange={handleTargetDropPercentChange}
                 />
               ))}
         </div>

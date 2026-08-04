@@ -59,10 +59,14 @@ type NaverMarketValueResponse = {
   stocks?: NaverMarketValueItem[];
 };
 
-type NaverPriceHistoryItem = {
-  closePrice?: string;
-  highPrice?: string;
-  lowPrice?: string;
+type NaverIntegrationInfoItem = {
+  code?: string;
+  key?: string;
+  value?: string;
+};
+
+type NaverIntegrationResponse = {
+  totalInfos?: NaverIntegrationInfoItem[];
 };
 
 type NaverMarketValueItem = {
@@ -134,6 +138,14 @@ const parseNaverTimestamp = (timestamp?: string): string | null => {
   ).toISOString();
 };
 
+const getTotalInfoValue = (
+  totalInfos: NaverIntegrationInfoItem[] | undefined,
+  code: string,
+) => {
+  const matched = totalInfos?.find((info) => info.code === code);
+  return parseNumber(matched?.value);
+};
+
 const normalizeCodes = (codesQuery: unknown): string[] => {
   if (typeof codesQuery !== 'string' || !codesQuery.trim()) {
     return DEFAULT_STOCK_CODES;
@@ -146,6 +158,33 @@ const normalizeCodes = (codesQuery: unknown): string[] => {
     .filter((code) => STOCK_CODE_PATTERN.test(code));
 
   return codes.length > 0 ? Array.from(new Set(codes)) : DEFAULT_STOCK_CODES;
+};
+
+const fetch52WeekRange = async (code: string, fallbackPrice: number) => {
+  const response = await fetch(
+    `https://m.stock.naver.com/api/stock/${code}/integration`,
+    {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      signal: AbortSignal.timeout(8000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`52주 지표 조회 실패: ${code}`);
+  }
+
+  const payload = (await response.json()) as NaverIntegrationResponse;
+
+  const high = getTotalInfoValue(payload.totalInfos, 'highPriceOf52Weeks');
+  const low = getTotalInfoValue(payload.totalInfos, 'lowPriceOf52Weeks');
+
+  return {
+    high: high > 0 ? high : fallbackPrice,
+    low: low > 0 ? low : fallbackPrice,
+  };
 };
 
 // Fetch a single realtime quote from Naver Finance and normalize fields.
@@ -177,23 +216,11 @@ const fetchQuote = async (code: string): Promise<StockQuote> => {
   let fiftyTwoWeekLow = currentPrice;
 
   try {
-    const history = await fetchPriceHistory(code);
-    const highs = history.map(
-      (entry) => parseNumber(entry.highPrice) || parseNumber(entry.closePrice),
-    );
-    const lows = history.map(
-      (entry) => parseNumber(entry.lowPrice) || parseNumber(entry.closePrice),
-    );
-
-    if (highs.length > 0) {
-      fiftyTwoWeekHigh = Math.max(...highs);
-    }
-
-    if (lows.length > 0) {
-      fiftyTwoWeekLow = Math.min(...lows);
-    }
+    const range = await fetch52WeekRange(code, currentPrice);
+    fiftyTwoWeekHigh = range.high;
+    fiftyTwoWeekLow = range.low;
   } catch (historyError) {
-    console.warn('주식 히스토리 조회 실패:', historyError);
+    console.warn('52주 지표 조회 실패:', historyError);
   }
 
   return {
@@ -211,26 +238,6 @@ const fetchQuote = async (code: string): Promise<StockQuote> => {
     fiftyTwoWeekHigh,
     fiftyTwoWeekLow,
   };
-};
-
-const fetchPriceHistory = async (code: string) => {
-  const response = await fetch(
-    `https://m.stock.naver.com/api/stock/${code}/price`,
-    {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'Mozilla/5.0',
-      },
-      signal: AbortSignal.timeout(8000),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`주식 가격 히스토리 조회 실패: ${code}`);
-  }
-
-  const payload = (await response.json()) as NaverPriceHistoryItem[];
-  return payload;
 };
 
 // Fetch one page of market-cap ranked stocks used for search catalog.
