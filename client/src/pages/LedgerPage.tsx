@@ -1,12 +1,4 @@
-import {
-  Suspense,
-  lazy,
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-} from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from './LedgerPage.module.css';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
@@ -20,16 +12,10 @@ import {
   formatDateDisplay,
 } from '../utils/dateUtils';
 import { GOOGLE_SHEET_URL } from '../config/api';
-import { shoppingAPI } from '../services/api';
-import type { ShoppingPriceItem } from '../types/shopping';
 import type { User } from '../types/user';
 import { LedgerHomeTabPage } from './ledger/LedgerHomeTabPage';
 import { LedgerListTabPage } from './ledger/LedgerListTabPage';
 import { LedgerAddTabPage } from './ledger/LedgerAddTabPage';
-const StockPage = lazy(async () => {
-  const module = await import('./StockPage');
-  return { default: module.StockPage };
-});
 
 type LedgerItem = {
   date: string;
@@ -55,29 +41,8 @@ type CachedLedgerItems = {
   items: LedgerItem[];
 };
 
-type ActiveTab = 'home' | 'list' | 'stock' | 'add';
+type ActiveTab = 'home' | 'list' | 'add';
 type ListViewTab = 'history' | 'stats';
-
-type ShoppingComparisonRow = {
-  product: string;
-  unit: string;
-  prices: ShoppingPriceItem['prices'];
-};
-
-type ShoppingNewMartFormData = {
-  martName: string;
-  price: string;
-};
-
-type ShoppingNewItemFormData = {
-  product: string;
-  unit: string;
-};
-
-type ShoppingItemEditFormData = {
-  product: string;
-  unit: string;
-};
 
 const CATEGORIES = [
   '대출',
@@ -104,46 +69,6 @@ const CATEGORIES = [
 
 const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
 const ITEMS_CACHE_TTL_MS = 1000 * 60 * 5;
-
-const createInitialNewMartFormData = (): ShoppingNewMartFormData => ({
-  martName: '',
-  price: '',
-});
-
-const createInitialNewItemFormData = (): ShoppingNewItemFormData => ({
-  product: '',
-  unit: '',
-});
-
-const createInitialShoppingItemEditFormData = (): ShoppingItemEditFormData => ({
-  product: '',
-  unit: '',
-});
-
-const formatShoppingUpdatedDate = (value: string): string => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return '';
-  }
-
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const toComparisonRow = (item: ShoppingPriceItem): ShoppingComparisonRow | null => {
-  if (!item.prices.length) {
-    return null;
-  }
-
-  const sortedPrices = [...item.prices].sort((a, b) => a.price - b.price);
-
-  return {
-    ...item,
-    prices: sortedPrices,
-  };
-};
 
 const getItemsCacheKey = (month: string) => `${ITEMS_CACHE_PREFIX}${month}`;
 
@@ -252,47 +177,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     useState(0);
   const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
   const [listViewTab, setListViewTab] = useState<ListViewTab>('history');
-  const [, setShoppingItems] = useState<ShoppingPriceItem[]>([]);
-  const [, setShoppingSearchQuery] = useState('');
-  const [selectedShoppingRow, setSelectedShoppingRow] =
-    useState<ShoppingComparisonRow | null>(null);
-  const [shoppingPriceEdits, setShoppingPriceEdits] = useState<
-    Record<string, { martName: string; price: string }>
-  >({});
-  const [shoppingNewMartFormData, setShoppingNewMartFormData] =
-    useState<ShoppingNewMartFormData>(() => createInitialNewMartFormData());
-  const [shoppingNewItemFormData, setShoppingNewItemFormData] =
-    useState<ShoppingNewItemFormData>(() => createInitialNewItemFormData());
-  const [shoppingItemEditFormData, setShoppingItemEditFormData] =
-    useState<ShoppingItemEditFormData>(() =>
-      createInitialShoppingItemEditFormData(),
-    );
-  const [isShoppingNewItemModalOpen, setIsShoppingNewItemModalOpen] =
-    useState(false);
-  const [, setIsLoadingShopping] = useState(false);
-  const [isSavingShopping, setIsSavingShopping] = useState(false);
-  const [isSavingShoppingItem, setIsSavingShoppingItem] = useState(false);
-  const [savingShoppingPriceId, setSavingShoppingPriceId] = useState<
-    string | null
-  >(null);
-  const [shoppingDeleteConfirm, setShoppingDeleteConfirm] = useState<{
-    isOpen: boolean;
-    priceId: string;
-    martName: string;
-  }>({
-    isOpen: false,
-    priceId: '',
-    martName: '',
-  });
-  const [shoppingItemDeleteConfirm, setShoppingItemDeleteConfirm] = useState<{
-    isOpen: boolean;
-    product: string;
-    unit: string;
-  }>({
-    isOpen: false,
-    product: '',
-    unit: '',
-  });
   const [submitModal, setSubmitModal] = useState<{
     isOpen: boolean;
     message: string;
@@ -380,43 +264,65 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     }
   }, []);
 
-  const loadMonthTotal = useCallback(
-    async (month: string, upToDay?: number): Promise<number> => {
+  // 한 번의 fetch로 전체 합계와 당일까지 누적 합계를 함께 계산 (중복 요청 제거)
+  const loadMonthTotals = useCallback(
+    async (
+      month: string,
+      upToDay: number,
+    ): Promise<{ total: number; comparableTotal: number }> => {
+      const sumItems = (monthItems: LedgerItem[]) => {
+        let total = 0;
+        let comparableTotal = 0;
+
+        for (const item of monthItems) {
+          total += item.amount;
+          const date = new Date(item.date);
+          if (!Number.isNaN(date.getTime()) && date.getDate() <= upToDay) {
+            comparableTotal += item.amount;
+          }
+        }
+
+        return { total, comparableTotal };
+      };
+
       try {
         const cached = readItemsCache(month);
-        const isWithinRange = (dateStr: string) => {
-          if (upToDay === undefined) {
-            return true;
-          }
-          const date = new Date(dateStr);
-          return !Number.isNaN(date.getTime()) && date.getDate() <= upToDay;
-        };
-
         if (cached) {
-          return cached.reduce(
-            (sum, item) => sum + (isWithinRange(item.date) ? item.amount : 0),
-            0,
-          );
+          return sumItems(cached);
         }
 
         const response = await fetch(`${GOOGLE_SHEET_URL}?month=${month}`);
         const result = await response.json();
         if (result.result !== 'success') {
-          return 0;
+          return { total: 0, comparableTotal: 0 };
         }
 
         const normalizedItems = normalizeLedgerItems(result.items || []);
         writeItemsCache(month, normalizedItems);
-        return normalizedItems.reduce(
-          (sum, item) => sum + (isWithinRange(item.date) ? item.amount : 0),
-          0,
-        );
+        return sumItems(normalizedItems);
       } catch {
-        return 0;
+        return { total: 0, comparableTotal: 0 };
       }
     },
     [],
   );
+
+  // 화면에 반영하지 않고 캐시만 데워두는 조용한 백그라운드 로드
+  const prefetchMonthItems = useCallback(async (month: string) => {
+    if (readItemsCache(month)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${GOOGLE_SHEET_URL}?month=${month}`);
+      const result = await response.json();
+      if (result.result === 'success') {
+        writeItemsCache(month, normalizeLedgerItems(result.items || []));
+      }
+    } catch {
+      // 프리페치 실패는 무시: 실제 진입 시 loadItems가 다시 시도함
+    }
+  }, []);
 
   // ✅ 초기 마운트: 월 옵션과 현재 월 데이터를 병렬로 로드
   useEffect(() => {
@@ -464,11 +370,8 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
 
     let isCancelled = false;
     setIsLoadingPreviousMonth(true);
-    Promise.all([
-      loadMonthTotal(previousMonth),
-      loadMonthTotal(previousMonth, comparisonDay),
-    ])
-      .then(([total, comparableTotal]) => {
+    loadMonthTotals(previousMonth, comparisonDay)
+      .then(({ total, comparableTotal }) => {
         if (!isCancelled) {
           setPreviousMonthTotal(total);
           setPreviousMonthComparableTotal(comparableTotal);
@@ -483,354 +386,39 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
     return () => {
       isCancelled = true;
     };
-  }, [activeTab, previousMonth, comparisonDay, loadMonthTotal]);
+  }, [activeTab, previousMonth, comparisonDay, loadMonthTotals]);
 
-  const loadShoppingItems = useCallback(async (): Promise<ShoppingPriceItem[]> => {
-    try {
-      setIsLoadingShopping(true);
-      const result = await shoppingAPI.getPrices();
-      const nextItems = result.items ?? [];
-      setShoppingItems(nextItems);
-      return nextItems;
-    } catch (error) {
-      console.error('장보기 시세 불러오기 실패:', error);
-      return [];
-    } finally {
-      setIsLoadingShopping(false);
-    }
-  }, []);
-
+  // 지난달 데이터를 탭과 무관하게 미리 캐시에 데워둠 (내역 탭에서 바로 조회 시 대비)
   useEffect(() => {
-    if (activeTab !== 'stock') {
+    void prefetchMonthItems(previousMonth);
+  }, [previousMonth, prefetchMonthItems]);
+
+  // 내역 탭에서 이전/다음 월로 이동할 확률이 높으므로 이웃 월 데이터를 미리 프리페치
+  useEffect(() => {
+    if (!isMonthOptionsLoaded || monthOptions.length === 0) {
       return;
     }
 
-    loadShoppingItems();
-  }, [activeTab, loadShoppingItems]);
+    const selectedIndex = monthOptions.indexOf(selectedMonth);
+    if (selectedIndex === -1) {
+      return;
+    }
+
+    const neighborMonths = [
+      monthOptions[selectedIndex - 1],
+      monthOptions[selectedIndex + 1],
+    ].filter((month): month is string => Boolean(month));
+
+    for (const month of neighborMonths) {
+      void prefetchMonthItems(month);
+    }
+  }, [isMonthOptionsLoaded, monthOptions, selectedMonth, prefetchMonthItems]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleShoppingPriceEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value, dataset } = e.target;
-    const priceId = dataset.priceId;
-
-    if (!priceId) {
-      return;
-    }
-
-    setShoppingPriceEdits((prev) => ({
-      ...prev,
-      [priceId]: {
-        martName:
-          name === 'martName' ? value : (prev[priceId]?.martName ?? ''),
-        price: name === 'price' ? value : (prev[priceId]?.price ?? ''),
-      },
-    }));
-  };
-
-  const handleShoppingNewMartFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setShoppingNewMartFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleOpenShoppingDetail = (row: ShoppingComparisonRow) => {
-    const editMap: Record<string, { martName: string; price: string }> = {};
-
-    for (const priceInfo of row.prices) {
-      editMap[priceInfo.id] = {
-        martName: priceInfo.martName,
-        price: String(priceInfo.price),
-      };
-    }
-
-    setShoppingPriceEdits(editMap);
-    setShoppingNewMartFormData({
-      martName: '',
-      price: '',
-    });
-    setShoppingItemEditFormData({
-      product: row.product,
-      unit: row.unit,
-    });
-    setSelectedShoppingRow(row);
-  };
-
-  const handleCloseShoppingDetail = () => {
-    setSelectedShoppingRow(null);
-    setShoppingPriceEdits({});
-    setShoppingNewMartFormData(createInitialNewMartFormData());
-    setShoppingItemEditFormData(createInitialShoppingItemEditFormData());
-    setSavingShoppingPriceId(null);
-    setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
-  };
-
-  const handleShoppingNewItemFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setShoppingNewItemFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCloseShoppingNewItemModal = () => {
-    setIsShoppingNewItemModalOpen(false);
-  };
-
-  const handleShoppingItemEditFormChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const { name, value } = e.target;
-    setShoppingItemEditFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const syncDetailRow = (
-    items: ShoppingPriceItem[],
-    product: string,
-    unit: string,
-  ) => {
-    const matched = items.find(
-      (item) => item.product === product && item.unit === unit,
-    );
-    if (!matched) {
-      setSelectedShoppingRow(null);
-      return;
-    }
-
-    const next = toComparisonRow(matched);
-    if (!next) {
-      setSelectedShoppingRow(null);
-      return;
-    }
-
-    setSelectedShoppingRow(next);
-    setShoppingItemEditFormData({
-      product: next.product,
-      unit: next.unit,
-    });
-
-    const editMap: Record<string, { martName: string; price: string }> = {};
-    for (const priceInfo of next.prices) {
-      editMap[priceInfo.id] = {
-        martName: priceInfo.martName,
-        price: String(priceInfo.price),
-      };
-    }
-    setShoppingPriceEdits(editMap);
-  };
-
-  const handleShoppingItemUpdate = async () => {
-    if (!selectedShoppingRow) {
-      return;
-    }
-
-    const nextProduct = shoppingItemEditFormData.product.trim();
-    const nextUnit = shoppingItemEditFormData.unit.trim();
-
-    if (!nextProduct || !nextUnit) {
-      return;
-    }
-
-    try {
-      setIsSavingShoppingItem(true);
-      await shoppingAPI.updateItem({
-        product: selectedShoppingRow.product,
-        unit: selectedShoppingRow.unit,
-        nextProduct,
-        nextUnit,
-      });
-      const latestItems = await loadShoppingItems();
-      syncDetailRow(latestItems, nextProduct, nextUnit);
-      setShoppingSearchQuery(nextProduct);
-    } catch (error) {
-      console.error('장보기 품목 수정 실패:', error);
-    } finally {
-      setIsSavingShoppingItem(false);
-    }
-  };
-
-  const handleShoppingPriceUpdate = async (priceId: string) => {
-    const editData = shoppingPriceEdits[priceId];
-    if (!editData || !selectedShoppingRow) {
-      return;
-    }
-
-    const normalizedMart = editData.martName.trim();
-    const parsedPrice = Number(editData.price);
-
-    if (!normalizedMart || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      return;
-    }
-
-    try {
-      setSavingShoppingPriceId(priceId);
-      await shoppingAPI.updatePrice(priceId, {
-        martName: normalizedMart,
-        price: parsedPrice,
-      });
-      const latestItems = await loadShoppingItems();
-      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
-    } catch (error) {
-      console.error('장보기 시세 수정 실패:', error);
-    } finally {
-      setSavingShoppingPriceId(null);
-    }
-  };
-
-  const handleShoppingDeleteClick = (priceId: string, martName: string) => {
-    setShoppingDeleteConfirm({
-      isOpen: true,
-      priceId,
-      martName,
-    });
-  };
-
-  const handleShoppingDeleteCancel = () => {
-    setShoppingDeleteConfirm({ isOpen: false, priceId: '', martName: '' });
-  };
-
-  const handleShoppingItemDeleteClick = () => {
-    if (!selectedShoppingRow) {
-      return;
-    }
-
-    setShoppingItemDeleteConfirm({
-      isOpen: true,
-      product: selectedShoppingRow.product,
-      unit: selectedShoppingRow.unit,
-    });
-  };
-
-  const handleShoppingItemDeleteCancel = () => {
-    setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
-  };
-
-  const handleShoppingItemDeleteConfirm = async () => {
-    if (!selectedShoppingRow) {
-      return;
-    }
-
-    try {
-      setIsSavingShoppingItem(true);
-      await shoppingAPI.deleteItem({
-        product: selectedShoppingRow.product,
-        unit: selectedShoppingRow.unit,
-      });
-      await loadShoppingItems();
-      handleCloseShoppingDetail();
-    } catch (error) {
-      console.error('장보기 품목 삭제 실패:', error);
-    } finally {
-      setIsSavingShoppingItem(false);
-      setShoppingItemDeleteConfirm({ isOpen: false, product: '', unit: '' });
-    }
-  };
-
-  const handleShoppingDeleteConfirm = async () => {
-    const { priceId } = shoppingDeleteConfirm;
-    if (!priceId || !selectedShoppingRow) {
-      return;
-    }
-
-    try {
-      setSavingShoppingPriceId(priceId);
-      await shoppingAPI.deletePrice(priceId);
-      const latestItems = await loadShoppingItems();
-      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
-    } catch (error) {
-      console.error('장보기 시세 삭제 실패:', error);
-    } finally {
-      setSavingShoppingPriceId(null);
-      setShoppingDeleteConfirm({ isOpen: false, priceId: '', martName: '' });
-    }
-  };
-
-  const handleShoppingAddMart = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedShoppingRow) {
-      return;
-    }
-
-    const normalizedMart = shoppingNewMartFormData.martName.trim();
-    const parsedPrice = Number(shoppingNewMartFormData.price);
-
-    if (
-      !normalizedMart ||
-      !Number.isFinite(parsedPrice) ||
-      parsedPrice <= 0
-    ) {
-      return;
-    }
-
-    try {
-      setIsSavingShopping(true);
-      await shoppingAPI.addPrice({
-        product: selectedShoppingRow.product,
-        unit: selectedShoppingRow.unit,
-        martName: normalizedMart,
-        price: parsedPrice,
-      });
-      const latestItems = await loadShoppingItems();
-      syncDetailRow(latestItems, selectedShoppingRow.product, selectedShoppingRow.unit);
-      setShoppingNewMartFormData((prev) => ({
-        ...prev,
-        martName: '',
-        price: '',
-      }));
-    } catch (error) {
-      console.error('장보기 시세 등록 실패:', error);
-    } finally {
-      setIsSavingShopping(false);
-    }
-  };
-
-  const handleShoppingAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const normalizedProduct = shoppingNewItemFormData.product.trim();
-    const normalizedUnit = shoppingNewItemFormData.unit.trim();
-
-    if (
-      !normalizedProduct ||
-      !normalizedUnit
-    ) {
-      return;
-    }
-
-    try {
-      setIsSavingShopping(true);
-      await shoppingAPI.addItem({
-        product: normalizedProduct,
-        unit: normalizedUnit,
-      });
-      const latestItems = await loadShoppingItems();
-      const matched = latestItems.find(
-        (item) =>
-          item.product === normalizedProduct && item.unit === normalizedUnit,
-      );
-
-      if (matched) {
-        const nextRow = toComparisonRow(matched);
-        if (nextRow) {
-          handleOpenShoppingDetail(nextRow);
-        }
-      }
-      setShoppingSearchQuery(normalizedProduct);
-      setIsShoppingNewItemModalOpen(false);
-      setShoppingNewItemFormData(createInitialNewItemFormData());
-    } catch (error) {
-      console.error('장보기 품목 추가 실패:', error);
-    } finally {
-      setIsSavingShopping(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1161,12 +749,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
           />
         )}
 
-        {activeTab === 'stock' && (
-          <Suspense fallback={<div className={styles.loading}>불러오는 중...</div>}>
-            <StockPage />
-          </Suspense>
-        )}
-
         {activeTab === 'add' && (
           <LedgerAddTabPage
             formData={formData}
@@ -1333,207 +915,6 @@ export function LedgerPage({ user, activeTab }: LedgerPageProps) {
         onConfirm={handleDeleteConfirm}
         title="삭제 확인"
         message="정말 삭제하시겠습니까?"
-        confirmText="삭제"
-        cancelText="취소"
-      />
-
-      <Modal
-        isOpen={selectedShoppingRow !== null}
-        onClose={handleCloseShoppingDetail}
-        title={
-          selectedShoppingRow
-            ? `${selectedShoppingRow.product} (${selectedShoppingRow.unit})`
-            : '장보기 상세'
-        }
-        maxWidth="520px"
-      >
-        {selectedShoppingRow && (
-          <div className={styles.shoppingDetailWrap}>
-            <div className={styles.shoppingItemEditPanel}>
-              <h4 className={styles.shoppingDetailTitle}>품목 정보</h4>
-              <div className={styles.shoppingItemEditRow}>
-                <input
-                  type="text"
-                  name="product"
-                  value={shoppingItemEditFormData.product}
-                  onChange={handleShoppingItemEditFormChange}
-                  placeholder="품목명"
-                  className={styles.shoppingInput}
-                />
-                <input
-                  type="text"
-                  name="unit"
-                  value={shoppingItemEditFormData.unit}
-                  onChange={handleShoppingItemEditFormChange}
-                  placeholder="단위"
-                  className={styles.shoppingInput}
-                />
-              </div>
-              <div className={styles.shoppingItemEditActions}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="small"
-                  disabled={isSavingShoppingItem}
-                  onClick={handleShoppingItemUpdate}
-                >
-                  {isSavingShoppingItem ? '수정 중...' : '품목 수정'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="small"
-                  disabled={isSavingShoppingItem}
-                  onClick={handleShoppingItemDeleteClick}
-                >
-                  품목 삭제
-                </Button>
-              </div>
-            </div>
-
-            <div className={styles.shoppingDetailList}>
-              {selectedShoppingRow.prices.map((priceInfo) => {
-                const edit = shoppingPriceEdits[priceInfo.id] ?? {
-                  martName: priceInfo.martName,
-                  price: String(priceInfo.price),
-                };
-
-                return (
-                  <div key={priceInfo.id} className={styles.shoppingDetailRow}>
-                    <input
-                      data-price-id={priceInfo.id}
-                      name="martName"
-                      value={edit.martName}
-                      onChange={handleShoppingPriceEditChange}
-                      className={styles.shoppingInput}
-                    />
-                    <input
-                      data-price-id={priceInfo.id}
-                      name="price"
-                      type="number"
-                      min="1"
-                      value={edit.price}
-                      onChange={handleShoppingPriceEditChange}
-                      className={styles.shoppingInput}
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="small"
-                      disabled={savingShoppingPriceId === priceInfo.id}
-                      onClick={() => handleShoppingPriceUpdate(priceInfo.id)}
-                    >
-                      {savingShoppingPriceId === priceInfo.id ? '저장 중...' : '수정'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="small"
-                      disabled={savingShoppingPriceId === priceInfo.id}
-                      onClick={() =>
-                        handleShoppingDeleteClick(priceInfo.id, priceInfo.martName)
-                      }
-                    >
-                      삭제
-                    </Button>
-                    <span className={styles.shoppingUpdatedDate}>
-                      {formatShoppingUpdatedDate(priceInfo.updatedAt)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <form className={styles.shoppingDetailAddForm} onSubmit={handleShoppingAddMart}>
-              <h4 className={styles.shoppingDetailTitle}>마트 추가</h4>
-              <div className={styles.shoppingDetailAddRow}>
-                <input
-                  type="text"
-                  name="martName"
-                  value={shoppingNewMartFormData.martName}
-                  onChange={handleShoppingNewMartFormChange}
-                  placeholder="마트명"
-                  className={styles.shoppingInput}
-                  required
-                />
-                <input
-                  type="number"
-                  name="price"
-                  min="1"
-                  value={shoppingNewMartFormData.price}
-                  onChange={handleShoppingNewMartFormChange}
-                  placeholder="가격"
-                  className={styles.shoppingInput}
-                  required
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="small"
-                  disabled={isSavingShopping}
-                >
-                  {isSavingShopping ? '추가 중...' : '추가'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={isShoppingNewItemModalOpen}
-        onClose={handleCloseShoppingNewItemModal}
-        title="품목 추가"
-        maxWidth="520px"
-      >
-        <form className={styles.shoppingItemAddForm} onSubmit={handleShoppingAddItem}>
-          <div className={styles.shoppingItemAddGrid}>
-            <input
-              type="text"
-              name="product"
-              value={shoppingNewItemFormData.product}
-              onChange={handleShoppingNewItemFormChange}
-              placeholder="품목명 (예: 사과)"
-              className={styles.shoppingInput}
-              required
-            />
-            <input
-              type="text"
-              name="unit"
-              value={shoppingNewItemFormData.unit}
-              onChange={handleShoppingNewItemFormChange}
-              placeholder="단위 (예: 1kg)"
-              className={styles.shoppingInput}
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="primary"
-            size="small"
-            disabled={isSavingShopping}
-          >
-            {isSavingShopping ? '추가 중...' : '추가하기'}
-          </Button>
-        </form>
-      </Modal>
-
-      <ConfirmModal
-        isOpen={shoppingDeleteConfirm.isOpen}
-        onClose={handleShoppingDeleteCancel}
-        onConfirm={handleShoppingDeleteConfirm}
-        title="마트 시세 삭제"
-        message={`${shoppingDeleteConfirm.martName} 시세를 삭제하시겠어요?`}
-        confirmText="삭제"
-        cancelText="취소"
-      />
-
-      <ConfirmModal
-        isOpen={shoppingItemDeleteConfirm.isOpen}
-        onClose={handleShoppingItemDeleteCancel}
-        onConfirm={handleShoppingItemDeleteConfirm}
-        title="품목 삭제"
-        message={`${shoppingItemDeleteConfirm.product} (${shoppingItemDeleteConfirm.unit}) 품목 전체를 삭제하시겠어요?`}
         confirmText="삭제"
         cancelText="취소"
       />

@@ -6,7 +6,6 @@ export interface IUser extends Document {
   password: string;
   name: string;
   monthlyBudget?: number;
-  stockWatchlistCodes: string[];
   createdAt: Date;
 }
 
@@ -17,7 +16,6 @@ const UserSchema: Schema = new Schema({
   password: { type: String, required: true },
   name: { type: String, required: true },
   monthlyBudget: { type: Number, default: 3000000, min: 0 },
-  stockWatchlistCodes: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now },
 });
 

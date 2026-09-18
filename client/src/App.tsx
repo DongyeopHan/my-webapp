@@ -14,12 +14,11 @@ import {
   type LogoutEventDetail,
 } from './services/authStorage';
 
-type ActiveTab = 'home' | 'list' | 'stock' | 'add';
+type ActiveTab = 'home' | 'list' | 'add';
 
 const TAB_ITEMS: { id: ActiveTab; label: string }[] = [
   { id: 'home', label: '🏠 홈' },
   { id: 'list', label: '📋 내역' },
-  { id: 'stock', label: '📈 주식' },
   { id: 'add', label: '➕ 추가' },
 ];
 
