@@ -65,6 +65,7 @@ const CATEGORIES = [
   '가족경조사',
   '지인경조사',
   '여행',
+  '월세',
 ];
 
 const ITEMS_CACHE_PREFIX = 'ledger_items_cache_';
